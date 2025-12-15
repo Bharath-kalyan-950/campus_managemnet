@@ -87,8 +87,8 @@ Navigate to [http://localhost:3000](http://localhost:3000)
 
 | Role | Email | Password |
 |------|-------|----------|
-| Student | john.doe@simats.edu | password |
-| Faculty | shoba.pandian@simats.edu | password |
+| Student | rajesh.kumar@simats.edu | password |
+| Faculty | daniel@simats.edu | password |
 | Admin | admin@simats.edu | password |
 
 ## 📁 Project Structure
