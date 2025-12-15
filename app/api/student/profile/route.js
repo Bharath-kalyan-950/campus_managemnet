@@ -14,6 +14,9 @@ export async function GET(request) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
+    // Use registration number for direct lookup - simpler and faster
+    const registrationNumber = decoded.registration_number || decoded.student_id;
+    
     const profile = await executeQuery(`
       SELECT 
         u.first_name, u.last_name, u.email, u.phone,
@@ -21,10 +24,10 @@ export async function GET(request) {
         s.cgpa, s.total_credits, s.hostel_resident, s.guardian_name,
         s.guardian_phone, s.address, s.blood_group, s.date_of_birth,
         s.admission_date
-      FROM users u
-      JOIN students s ON u.id = s.user_id
+      FROM students s
+      JOIN users u ON s.student_id = u.user_id
       WHERE s.student_id = ?
-    `, [decoded.student_id]);
+    `, [registrationNumber]);
 
     if (profile.length === 0) {
       return NextResponse.json({ success: false, message: 'Profile not found' }, { status: 404 });
@@ -52,12 +55,15 @@ export async function PUT(request) {
     const updates = await request.json();
     const { phone, guardian_name, guardian_phone, address, blood_group } = updates;
 
+    // Use registration number for direct lookup
+    const registrationNumber = decoded.registration_number || decoded.student_id;
+    
     await executeQuery(`
       UPDATE users u
       JOIN students s ON u.id = s.user_id
       SET u.phone = ?, s.guardian_name = ?, s.guardian_phone = ?, s.address = ?, s.blood_group = ?
       WHERE s.student_id = ?
-    `, [phone, guardian_name, guardian_phone, address, blood_group, decoded.student_id]);
+    `, [phone, guardian_name, guardian_phone, address, blood_group, registrationNumber]);
 
     return NextResponse.json({ success: true, message: 'Profile updated successfully' });
   } catch (error) {

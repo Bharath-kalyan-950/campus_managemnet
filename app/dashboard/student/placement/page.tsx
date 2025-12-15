@@ -1,64 +1,74 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function PlacementPage() {
   const [selectedDrive, setSelectedDrive] = useState<number | null>(null);
+  const [placementData, setPlacementData] = useState({ offers: [], applications: [] });
+  const [loading, setLoading] = useState(true);
 
-  const jobDrives = [
-    {
-      id: 1,
-      company: 'Google',
-      logo: '🔵',
-      role: 'Software Engineer',
-      type: 'Full-time',
-      package: '$120,000/year',
-      location: 'Mountain View, CA',
-      deadline: '2 days left',
-      eligibility: '7.5+ CGPA',
-      description: 'Looking for talented software engineers to join our team.',
-      requirements: ['Strong DSA skills', 'System Design', 'Problem Solving'],
-    },
-    {
-      id: 2,
-      company: 'Microsoft',
-      logo: '🟦',
-      role: 'Cloud Developer',
-      type: 'Full-time',
-      package: '$110,000/year',
-      location: 'Redmond, WA',
-      deadline: '5 days left',
-      eligibility: '7.0+ CGPA',
-      description: 'Join our Azure cloud team and build scalable solutions.',
-      requirements: ['Cloud Computing', 'Azure', 'DevOps'],
-    },
-    {
-      id: 3,
-      company: 'Amazon',
-      logo: '🟧',
-      role: 'Full Stack Developer',
-      type: 'Full-time',
-      package: '$115,000/year',
-      location: 'Seattle, WA',
-      deadline: '1 week left',
-      eligibility: '7.0+ CGPA',
-      description: 'Build innovative solutions for millions of customers.',
-      requirements: ['React', 'Node.js', 'AWS'],
-    },
-    {
-      id: 4,
-      company: 'Meta',
-      logo: '🔷',
-      role: 'Frontend Engineer',
-      type: 'Internship',
-      package: '$8,000/month',
-      location: 'Menlo Park, CA',
-      deadline: '3 days left',
-      eligibility: '6.5+ CGPA',
-      description: 'Summer internship opportunity for frontend developers.',
-      requirements: ['React', 'JavaScript', 'UI/UX'],
-    },
-  ];
+  useEffect(() => {
+    fetchPlacementData();
+  }, []);
+
+  const fetchPlacementData = async () => {
+    try {
+      const response = await fetch('/api/student/placement');
+      const data = await response.json();
+      
+      if (data.success) {
+        setPlacementData(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching placement data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApply = async (offerId: number) => {
+    try {
+      const response = await fetch('/api/student/placement', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ offer_id: offerId }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Application submitted successfully!');
+        fetchPlacementData(); // Refresh data
+      } else {
+        alert(data.message || 'Failed to submit application');
+      }
+    } catch (error) {
+      console.error('Error applying for position:', error);
+      alert('Failed to submit application');
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getDaysLeft = (deadline) => {
+    const today = new Date();
+    const deadlineDate = new Date(deadline);
+    const diffTime = deadlineDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return 'Expired';
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return '1 day left';
+    return `${diffDays} days left`;
+  };
 
   const trainingAnnouncements = [
     { id: 1, title: 'Resume Building Workshop', date: 'Mar 10, 2024', time: '02:00 PM', venue: 'Auditorium', type: 'Workshop' },
@@ -67,11 +77,16 @@ export default function PlacementPage() {
     { id: 4, title: 'Group Discussion Practice', date: 'Mar 18, 2024', time: '11:00 AM', venue: 'Conference Room', type: 'Workshop' },
   ];
 
-  const myApplications = [
-    { company: 'Google', role: 'Software Engineer', appliedDate: 'Feb 20, 2024', status: 'Under Review' },
-    { company: 'Microsoft', role: 'Cloud Developer', appliedDate: 'Feb 18, 2024', status: 'Shortlisted' },
-    { company: 'Amazon', role: 'Full Stack Developer', appliedDate: 'Feb 15, 2024', status: 'Interview Scheduled' },
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading placement information...</p>
+        </div>
+      </div>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     if (status === 'Shortlisted') return 'bg-emerald-100 text-emerald-600';
@@ -91,7 +106,7 @@ export default function PlacementPage() {
             </div>
             <div>
               <p className="text-sm text-slate-600">Active Drives</p>
-              <p className="text-2xl font-bold text-slate-900">{jobDrives.length}</p>
+              <p className="text-2xl font-bold text-slate-900">{placementData.offers.length}</p>
             </div>
           </div>
         </div>
@@ -102,7 +117,7 @@ export default function PlacementPage() {
             </div>
             <div>
               <p className="text-sm text-slate-600">Applied</p>
-              <p className="text-2xl font-bold text-slate-900">{myApplications.length}</p>
+              <p className="text-2xl font-bold text-slate-900">{placementData.applications.length}</p>
             </div>
           </div>
         </div>
@@ -113,7 +128,9 @@ export default function PlacementPage() {
             </div>
             <div>
               <p className="text-sm text-slate-600">Shortlisted</p>
-              <p className="text-2xl font-bold text-slate-900">1</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {placementData.applications.filter(app => app.status === 'shortlisted').length}
+              </p>
             </div>
           </div>
         </div>
@@ -136,45 +153,57 @@ export default function PlacementPage() {
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
             <h2 className="text-2xl font-bold text-slate-900 mb-6">Latest Job Drives</h2>
             <div className="grid gap-4">
-              {jobDrives.map((drive) => (
-                <div key={drive.id} className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200 hover:shadow-lg transition">
+              {placementData.offers.map((drive) => (
+                <div key={drive.offer_id} className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200 hover:shadow-lg transition">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      <div className="text-5xl">{drive.logo}</div>
+                      <div className="text-5xl">🏢</div>
                       <div>
-                        <h3 className="text-xl font-bold text-slate-900">{drive.company}</h3>
-                        <p className="text-slate-600">{drive.role}</p>
+                        <h3 className="text-xl font-bold text-slate-900">{drive.company_name}</h3>
+                        <p className="text-slate-600">{drive.job_title}</p>
                         <div className="flex items-center gap-2 mt-2">
                           <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-semibold">
-                            {drive.type}
+                            {drive.job_type}
                           </span>
                           <span className="text-xs bg-emerald-100 text-emerald-600 px-2 py-1 rounded-full font-semibold">
-                            {drive.package}
+                            ₹{parseFloat(drive.package_amount || 0).toLocaleString()}/year
                           </span>
                         </div>
                       </div>
                     </div>
                     <span className="text-xs bg-orange-100 text-orange-600 px-3 py-1 rounded-full font-semibold">
-                      ⏰ {drive.deadline}
+                      ⏰ {getDaysLeft(drive.application_deadline)}
                     </span>
                   </div>
                   <div className="space-y-2 mb-4">
-                    <p className="text-sm text-slate-600">📍 {drive.location}</p>
-                    <p className="text-sm text-slate-600">🎓 Eligibility: {drive.eligibility}</p>
+                    <p className="text-sm text-slate-600">📍 {drive.job_location}</p>
+                    <p className="text-sm text-slate-600">📅 Deadline: {formatDate(drive.application_deadline)}</p>
                   </div>
                   <div className="flex gap-3">
                     <button
-                      onClick={() => setSelectedDrive(drive.id)}
+                      onClick={() => setSelectedDrive(drive.offer_id)}
                       className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition"
                     >
                       View Details
                     </button>
-                    <button className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition">
-                      Apply Now
-                    </button>
+                    {drive.application_status === 'not_applied' ? (
+                      <button 
+                        onClick={() => handleApply(drive.offer_id)}
+                        className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition"
+                      >
+                        Apply Now
+                      </button>
+                    ) : (
+                      <span className="px-6 py-3 bg-slate-300 text-slate-600 rounded-xl font-semibold">
+                        {drive.application_status}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
+              {placementData.offers.length === 0 && (
+                <p className="text-center text-slate-500 py-8">No active placement drives available</p>
+              )}
             </div>
           </div>
 
@@ -192,11 +221,11 @@ export default function PlacementPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {myApplications.map((app, idx) => (
+                  {placementData.applications.map((app, idx) => (
                     <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                      <td className="py-3 px-4 font-semibold text-slate-900">{app.company}</td>
-                      <td className="py-3 px-4 text-slate-600">{app.role}</td>
-                      <td className="py-3 px-4 text-slate-600">{app.appliedDate}</td>
+                      <td className="py-3 px-4 font-semibold text-slate-900">{app.company_name}</td>
+                      <td className="py-3 px-4 text-slate-600">{app.job_title}</td>
+                      <td className="py-3 px-4 text-slate-600">{formatDate(app.application_date)}</td>
                       <td className="py-3 px-4 text-center">
                         <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(app.status)}`}>
                           {app.status}
@@ -204,6 +233,13 @@ export default function PlacementPage() {
                       </td>
                     </tr>
                   ))}
+                  {placementData.applications.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-slate-500">
+                        No applications submitted yet
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -262,7 +298,7 @@ export default function PlacementPage() {
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
             <div className="p-6 border-b border-slate-200 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-slate-900">
-                {jobDrives.find(d => d.id === selectedDrive)?.company} - Job Details
+                {placementData.offers.find(d => d.offer_id === selectedDrive)?.company_name} - Job Details
               </h2>
               <button
                 onClick={() => setSelectedDrive(null)}
@@ -274,48 +310,52 @@ export default function PlacementPage() {
               </button>
             </div>
             <div className="p-6 overflow-y-auto max-h-[60vh]">
-              {jobDrives.filter(d => d.id === selectedDrive).map(drive => (
-                <div key={drive.id} className="space-y-4">
+              {placementData.offers.filter(d => d.offer_id === selectedDrive).map(drive => (
+                <div key={drive.offer_id} className="space-y-4">
                   <div className="flex items-center gap-4">
-                    <div className="text-6xl">{drive.logo}</div>
+                    <div className="text-6xl">🏢</div>
                     <div>
-                      <h3 className="text-2xl font-bold text-slate-900">{drive.role}</h3>
-                      <p className="text-slate-600">{drive.company}</p>
+                      <h3 className="text-2xl font-bold text-slate-900">{drive.job_title}</h3>
+                      <p className="text-slate-600">{drive.company_name}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-slate-50 rounded-xl">
                       <p className="text-sm text-slate-600">Package</p>
-                      <p className="font-bold text-slate-900">{drive.package}</p>
+                      <p className="font-bold text-slate-900">₹{parseFloat(drive.package_amount || 0).toLocaleString()}/year</p>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-xl">
                       <p className="text-sm text-slate-600">Location</p>
-                      <p className="font-bold text-slate-900">{drive.location}</p>
+                      <p className="font-bold text-slate-900">{drive.job_location}</p>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-xl">
                       <p className="text-sm text-slate-600">Type</p>
-                      <p className="font-bold text-slate-900">{drive.type}</p>
+                      <p className="font-bold text-slate-900">{drive.job_type}</p>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-xl">
-                      <p className="text-sm text-slate-600">Eligibility</p>
-                      <p className="font-bold text-slate-900">{drive.eligibility}</p>
+                      <p className="text-sm text-slate-600">Deadline</p>
+                      <p className="font-bold text-slate-900">{formatDate(drive.application_deadline)}</p>
                     </div>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 mb-2">Description</h4>
-                    <p className="text-slate-600">{drive.description}</p>
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900 mb-2">Requirements</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      {drive.requirements.map((req, idx) => (
-                        <li key={idx} className="text-slate-600">{req}</li>
-                      ))}
-                    </ul>
+                    <p className="text-slate-600">{drive.requirements || 'No specific requirements listed'}</p>
                   </div>
-                  <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all">
-                    Apply for this Position
-                  </button>
+                  {drive.application_status === 'not_applied' ? (
+                    <button 
+                      onClick={() => {
+                        handleApply(drive.offer_id);
+                        setSelectedDrive(null);
+                      }}
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all"
+                    >
+                      Apply for this Position
+                    </button>
+                  ) : (
+                    <div className="w-full bg-slate-300 text-slate-600 py-4 rounded-xl font-bold text-lg text-center">
+                      Status: {drive.application_status}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -1,9 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { studentAPI } from '../../../../lib/api.js';
+
+interface AttendanceItem {
+  subject: string;
+  code: string;
+  present: number;
+  total: number;
+  percentage: number;
+  status: 'good' | 'warning';
+}
 
 export default function AttendancePage() {
   const [showODForm, setShowODForm] = useState(false);
+  const [attendanceData, setAttendanceData] = useState<AttendanceItem[]>([]);
+  const [recentAttendance, setRecentAttendance] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [odForm, setOdForm] = useState({
     eventName: '',
     reason: '',
@@ -11,29 +25,57 @@ export default function AttendancePage() {
     duration: '',
   });
 
-  const attendanceData = [
-    { subject: 'Data Structures & Algorithms', code: 'CS301', present: 42, total: 45, percentage: 93.3, status: 'good' },
-    { subject: 'Database Management Systems', code: 'CS302', present: 38, total: 42, percentage: 90.5, status: 'good' },
-    { subject: 'Web Development', code: 'CS303', present: 40, total: 43, percentage: 93.0, status: 'good' },
-    { subject: 'Operating Systems', code: 'CS304', present: 35, total: 44, percentage: 79.5, status: 'warning' },
-    { subject: 'Computer Networks', code: 'CS305', present: 41, total: 45, percentage: 91.1, status: 'good' },
-    { subject: 'Software Engineering', code: 'CS306', present: 39, total: 42, percentage: 92.9, status: 'good' },
-  ];
+  useEffect(() => {
+    fetchAttendanceData();
+  }, []);
 
-  const monthlyTrend = [
-    { month: 'Sep', percentage: 88 },
-    { month: 'Oct', percentage: 90 },
-    { month: 'Nov', percentage: 92 },
-    { month: 'Dec', percentage: 89 },
-    { month: 'Jan', percentage: 91 },
-    { month: 'Feb', percentage: 93 },
-  ];
+  const fetchAttendanceData = async () => {
+    try {
+      setLoading(true);
+      const response = await studentAPI.getAttendance();
+      if (response.success) {
+        const { summary, recent } = response.data;
+        
+        // Format attendance data for display
+        const formattedData = summary.map((course: any): AttendanceItem => {
+          const percentage = parseFloat(course.attendance_percentage) || 0;
+          return {
+            subject: course.course_name,
+            code: course.course_code,
+            present: parseInt(course.present_count) || 0,
+            total: parseInt(course.total_classes) || 0,
+            percentage: percentage,
+            status: percentage >= 80 ? 'good' : 'warning'
+          };
+        });
+        
+        setAttendanceData(formattedData);
+        setRecentAttendance(recent);
+      } else {
+        setError('Failed to load attendance data');
+      }
+    } catch (err) {
+      setError('Failed to load attendance data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Mock OD requests (can be moved to API later)
   const odRequests = [
     { id: 1, eventName: 'Technical Symposium', date: 'Feb 15, 2024', duration: '2 days', status: 'Approved', reason: 'Participation in coding competition' },
     { id: 2, eventName: 'Sports Meet', date: 'Jan 20, 2024', duration: '1 day', status: 'Approved', reason: 'Inter-college basketball tournament' },
     { id: 3, eventName: 'Workshop', date: 'Mar 5, 2024', duration: '3 days', status: 'Pending', reason: 'AI/ML Workshop at IIT' },
     { id: 4, eventName: 'Hackathon', date: 'Dec 10, 2023', duration: '2 days', status: 'Rejected', reason: 'Insufficient documentation' },
+  ];
+
+  // Mock monthly trend data (can be moved to API later)
+  const monthlyTrend = [
+    { month: 'January', percentage: 85 },
+    { month: 'February', percentage: 92 },
+    { month: 'March', percentage: 78 },
+    { month: 'April', percentage: 88 },
+    { month: 'May', percentage: 95 },
   ];
 
   const getStatusColor = (status: string) => {
@@ -55,10 +97,32 @@ export default function AttendancePage() {
     setOdForm({ eventName: '', reason: '', date: '', duration: '' });
   };
 
-  const overallAttendance = (
-    attendanceData.reduce((sum, item) => sum + item.present, 0) /
-    attendanceData.reduce((sum, item) => sum + item.total, 0) * 100
-  ).toFixed(1);
+  const overallAttendance = attendanceData.length > 0 ? (
+    attendanceData.reduce((sum, item) => sum + (item.present || 0), 0) /
+    attendanceData.reduce((sum, item) => sum + (item.total || 1), 0) * 100
+  ).toFixed(1) : '0.0';
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600">{error}</p>
+        <button 
+          onClick={fetchAttendanceData}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -129,7 +193,7 @@ export default function AttendancePage() {
                     </div>
                     <div className="text-right">
                       <p className={`text-2xl font-bold ${item.status === 'good' ? 'text-emerald-600' : 'text-orange-600'}`}>
-                        {item.percentage.toFixed(1)}%
+                        {(typeof item.percentage === 'number' ? item.percentage : 0).toFixed(1)}%
                       </p>
                       <p className="text-sm text-slate-600">{item.present}/{item.total} classes</p>
                     </div>
@@ -139,7 +203,7 @@ export default function AttendancePage() {
                       className={`h-3 rounded-full transition-all ${
                         item.status === 'good' ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-gradient-to-r from-orange-400 to-orange-600'
                       }`}
-                      style={{ width: `${item.percentage}%` }}
+                      style={{ width: `${(typeof item.percentage === 'number' ? item.percentage : 0)}%` }}
                     ></div>
                   </div>
                   <div className="mt-2 flex items-center gap-2">
@@ -204,12 +268,12 @@ export default function AttendancePage() {
                 <div key={idx}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-semibold text-slate-700">{month.month}</span>
-                    <span className="text-sm font-bold text-blue-600">{month.percentage}%</span>
+                    <span className="text-sm font-bold text-blue-600">{(typeof month.percentage === 'number' ? month.percentage : 0)}%</span>
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-2">
                     <div
                       className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
-                      style={{ width: `${month.percentage}%` }}
+                      style={{ width: `${(typeof month.percentage === 'number' ? month.percentage : 0)}%` }}
                     ></div>
                   </div>
                 </div>

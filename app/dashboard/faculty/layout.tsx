@@ -1,7 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+
+interface UserInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  facultyId: string;
+}
 
 export default function FacultyLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -17,6 +24,39 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
   const [showDisciplinarySubmenu, setShowDisciplinarySubmenu] = useState(false);
   const [showRaiseInfraSubmenu, setShowRaiseInfraSubmenu] = useState(false);
   const [showResultSubmenu, setShowResultSubmenu] = useState(false);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+
+  useEffect(() => {
+    fetchUserInfo();
+  }, []);
+
+  const fetchUserInfo = async () => {
+    try {
+      const response = await fetch('/api/faculty/profile');
+      const data = await response.json();
+      
+      if (data.success) {
+        setUserInfo({
+          firstName: data.data.first_name,
+          lastName: data.data.last_name,
+          email: data.data.email,
+          facultyId: data.data.faculty_id
+        });
+      } else {
+        console.error('Failed to fetch faculty profile:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching faculty user info:', error);
+    }
+  };
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  };
+
+  const getFullName = (firstName: string, lastName: string) => {
+    return `${firstName} ${lastName}`;
+  };
 
   const menuItems = [
     { name: 'Home', icon: '🏠', path: '/dashboard/faculty' },
@@ -32,8 +72,14 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
     { id: 3, title: 'Meeting Schedule', message: 'Faculty meeting at 3 PM', time: '5 hours ago', unread: false },
   ];
 
-  const handleLogout = () => {
-    router.push('/');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      router.push('/');
+    }
   };
 
   return (
@@ -811,10 +857,12 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold shadow-lg">
-                        D
+                        {userInfo ? getInitials(userInfo.firstName, userInfo.lastName) : 'FA'}
                       </div>
                       <div className="hidden md:block text-left">
-                        <p className="text-sm font-bold text-slate-900">DANIEL</p>
+                        <p className="text-sm font-bold text-slate-900">
+                          {userInfo ? getFullName(userInfo.firstName, userInfo.lastName).toUpperCase() : 'Loading...'}
+                        </p>
                         <p className="text-xs text-slate-600">Faculty</p>
                       </div>
                     </div>
@@ -825,11 +873,15 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
                       <div className="p-4 border-b border-slate-200">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold">
-                            D
+                            {userInfo ? getInitials(userInfo.firstName, userInfo.lastName) : 'FA'}
                           </div>
                           <div>
-                            <h3 className="font-bold text-slate-900">Daniel</h3>
-                            <p className="text-sm text-slate-600">Faculty ID: FAC2024001</p>
+                            <h3 className="font-bold text-slate-900">
+                              {userInfo ? getFullName(userInfo.firstName, userInfo.lastName) : 'Loading...'}
+                            </h3>
+                            <p className="text-sm text-slate-600">
+                              Faculty ID: {userInfo ? userInfo.facultyId : 'Loading...'}
+                            </p>
                           </div>
                         </div>
                       </div>

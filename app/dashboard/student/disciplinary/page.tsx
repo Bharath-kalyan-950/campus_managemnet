@@ -1,57 +1,61 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function DisciplinaryPage() {
   const [selectedRecord, setSelectedRecord] = useState<number | null>(null);
+  const [disciplinaryRecords, setDisciplinaryRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const disciplinaryRecords = [
-    {
-      sno: 1,
-      issueDetails: 'Operating classroom AC from his phone',
-      lastActionDetails: 'Warning issued by HOD',
-      lastActionOn: '15/04/2023',
-      complainant: 'ADSA',
-      issueOn: '15/04/2023',
-      status: 'InProgress',
-      severity: 'Minor',
-      resolution: 'Student counseled about proper classroom conduct',
-    },
-    {
-      sno: 2,
-      issueDetails: 'Late attendance for 3 consecutive days',
-      lastActionDetails: 'Written warning issued',
-      lastActionOn: '20/03/2023',
-      complainant: 'Faculty Advisor',
-      issueOn: '18/03/2023',
-      status: 'Closed',
-      severity: 'Minor',
-      resolution: 'Student committed to improve punctuality',
-    },
-    {
-      sno: 3,
-      issueDetails: 'Unauthorized use of lab equipment',
-      lastActionDetails: 'Under investigation',
-      lastActionOn: '10/04/2023',
-      complainant: 'Lab Supervisor',
-      issueOn: '08/04/2023',
-      status: 'InProgress',
-      severity: 'Moderate',
-      resolution: 'Investigation ongoing',
-    },
-  ];
+  useEffect(() => {
+    fetchDisciplinaryRecords();
+  }, []);
+
+  const fetchDisciplinaryRecords = async () => {
+    try {
+      const response = await fetch('/api/student/disciplinary');
+      const data = await response.json();
+      
+      if (data.success) {
+        setDisciplinaryRecords(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching disciplinary records:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading disciplinary records...</p>
+        </div>
+      </div>
+    );
+  }
 
   const getStatusColor = (status: string) => {
-    if (status === 'InProgress') return 'bg-orange-100 text-orange-600';
-    if (status === 'Closed') return 'bg-emerald-100 text-emerald-600';
-    if (status === 'Pending') return 'bg-yellow-100 text-yellow-600';
+    if (status === 'pending') return 'bg-orange-100 text-orange-600';
+    if (status === 'resolved') return 'bg-emerald-100 text-emerald-600';
+    if (status === 'appealed') return 'bg-yellow-100 text-yellow-600';
     return 'bg-slate-100 text-slate-600';
   };
 
   const getSeverityColor = (severity: string) => {
-    if (severity === 'Minor') return 'bg-blue-100 text-blue-600';
-    if (severity === 'Moderate') return 'bg-orange-100 text-orange-600';
-    if (severity === 'Major') return 'bg-red-100 text-red-600';
+    if (severity === 'minor') return 'bg-blue-100 text-blue-600';
+    if (severity === 'major') return 'bg-orange-100 text-orange-600';
+    if (severity === 'severe') return 'bg-red-100 text-red-600';
     return 'bg-slate-100 text-slate-600';
   };
 
@@ -85,9 +89,9 @@ export default function DisciplinaryPage() {
               ⏳
             </div>
             <div>
-              <p className="text-sm text-slate-600">In Progress</p>
+              <p className="text-sm text-slate-600">Pending</p>
               <p className="text-2xl font-bold text-slate-900">
-                {disciplinaryRecords.filter(r => r.status === 'InProgress').length}
+                {disciplinaryRecords.filter(r => r.status === 'pending').length}
               </p>
             </div>
           </div>
@@ -99,9 +103,9 @@ export default function DisciplinaryPage() {
               ✅
             </div>
             <div>
-              <p className="text-sm text-slate-600">Closed</p>
+              <p className="text-sm text-slate-600">Resolved</p>
               <p className="text-2xl font-bold text-slate-900">
-                {disciplinaryRecords.filter(r => r.status === 'Closed').length}
+                {disciplinaryRecords.filter(r => r.status === 'resolved').length}
               </p>
             </div>
           </div>
@@ -137,16 +141,16 @@ export default function DisciplinaryPage() {
               </tr>
             </thead>
             <tbody>
-              {disciplinaryRecords.map((record) => (
-                <tr key={record.sno} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                  <td className="py-4 px-4 font-semibold text-slate-900">{record.sno}</td>
+              {disciplinaryRecords.map((record, idx) => (
+                <tr key={record.action_id} className="border-b border-slate-100 hover:bg-slate-50 transition">
+                  <td className="py-4 px-4 font-semibold text-slate-900">{idx + 1}</td>
                   <td className="py-4 px-4">
-                    <p className="font-semibold text-slate-900 text-sm">{record.issueDetails}</p>
+                    <p className="font-semibold text-slate-900 text-sm">{record.description}</p>
                   </td>
-                  <td className="py-4 px-4 text-slate-600 text-sm">{record.lastActionDetails}</td>
-                  <td className="py-4 px-4 text-slate-600 text-sm">{record.lastActionOn}</td>
-                  <td className="py-4 px-4 text-slate-600 text-sm font-semibold">{record.complainant}</td>
-                  <td className="py-4 px-4 text-slate-600 text-sm">{record.issueOn}</td>
+                  <td className="py-4 px-4 text-slate-600 text-sm">{record.action_taken}</td>
+                  <td className="py-4 px-4 text-slate-600 text-sm">{formatDate(record.date_reported)}</td>
+                  <td className="py-4 px-4 text-slate-600 text-sm font-semibold">{record.reported_by_name || 'System'}</td>
+                  <td className="py-4 px-4 text-slate-600 text-sm">{formatDate(record.date_reported)}</td>
                   <td className="py-4 px-4 text-center">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(record.status)}`}>
                       {record.status}
@@ -154,7 +158,7 @@ export default function DisciplinaryPage() {
                   </td>
                   <td className="py-4 px-4 text-center">
                     <button
-                      onClick={() => setSelectedRecord(record.sno)}
+                      onClick={() => setSelectedRecord(record.action_id)}
                       className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm"
                     >
                       View File
@@ -162,6 +166,15 @@ export default function DisciplinaryPage() {
                   </td>
                 </tr>
               ))}
+              {disciplinaryRecords.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center">
+                    <div className="text-6xl mb-4">✅</div>
+                    <p className="text-slate-600 font-semibold">No disciplinary records found</p>
+                    <p className="text-sm text-slate-500 mt-2">You have a clean record!</p>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -191,12 +204,12 @@ export default function DisciplinaryPage() {
               </button>
             </div>
             <div className="p-6 overflow-y-auto max-h-[60vh]">
-              {disciplinaryRecords.filter(r => r.sno === selectedRecord).map(record => (
-                <div key={record.sno} className="space-y-4">
+              {disciplinaryRecords.filter(r => r.action_id === selectedRecord).map(record => (
+                <div key={record.action_id} className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="p-4 bg-slate-50 rounded-xl">
-                      <p className="text-sm text-slate-600 mb-1">Record Number</p>
-                      <p className="font-bold text-slate-900 text-lg">#{record.sno}</p>
+                      <p className="text-sm text-slate-600 mb-1">Record ID</p>
+                      <p className="font-bold text-slate-900 text-lg">#{record.action_id}</p>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-xl">
                       <p className="text-sm text-slate-600 mb-1">Status</p>
@@ -207,25 +220,29 @@ export default function DisciplinaryPage() {
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-xl">
-                    <p className="text-sm text-slate-600 mb-2">Issue Details</p>
-                    <p className="font-semibold text-slate-900">{record.issueDetails}</p>
+                    <p className="text-sm text-slate-600 mb-2">Violation Type</p>
+                    <p className="font-semibold text-slate-900">{record.violation_type}</p>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 rounded-xl">
+                    <p className="text-sm text-slate-600 mb-2">Description</p>
+                    <p className="font-semibold text-slate-900">{record.description}</p>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="p-4 bg-slate-50 rounded-xl">
-                      <p className="text-sm text-slate-600 mb-1">Complainant</p>
-                      <p className="font-semibold text-slate-900">{record.complainant}</p>
+                      <p className="text-sm text-slate-600 mb-1">Reported By</p>
+                      <p className="font-semibold text-slate-900">{record.reported_by_name || 'System'}</p>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-xl">
-                      <p className="text-sm text-slate-600 mb-1">Issue Date</p>
-                      <p className="font-semibold text-slate-900">{record.issueOn}</p>
+                      <p className="text-sm text-slate-600 mb-1">Date Reported</p>
+                      <p className="font-semibold text-slate-900">{formatDate(record.date_reported)}</p>
                     </div>
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-xl">
-                    <p className="text-sm text-slate-600 mb-2">Last Action Details</p>
-                    <p className="font-semibold text-slate-900">{record.lastActionDetails}</p>
-                    <p className="text-sm text-slate-500 mt-2">Last Updated: {record.lastActionOn}</p>
+                    <p className="text-sm text-slate-600 mb-2">Action Taken</p>
+                    <p className="font-semibold text-slate-900">{record.action_taken}</p>
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-xl">
@@ -233,11 +250,6 @@ export default function DisciplinaryPage() {
                     <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${getSeverityColor(record.severity)}`}>
                       {record.severity}
                     </span>
-                  </div>
-
-                  <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
-                    <p className="text-sm text-blue-900 font-semibold mb-1">Resolution</p>
-                    <p className="text-sm text-blue-800">{record.resolution}</p>
                   </div>
                 </div>
               ))}

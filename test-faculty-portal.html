@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Portal Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .result { margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Faculty Portal Login Test</h1>
+    
+    <div class="test-section">
+        <h3>Test Faculty Login</h3>
+        <p>This will test if faculty login and profile retrieval is working correctly.</p>
+        
+        <div>
+            <label>Email: </label>
+            <input type="email" id="email" value="daniel@simats.edu" style="width: 200px;">
+        </div>
+        <div style="margin-top: 10px;">
+            <label>Password: </label>
+            <input type="password" id="password" value="password" style="width: 200px;">
+        </div>
+        
+        <button onclick="testLogin()">Test Login</button>
+        <button onclick="testProfile()">Test Profile (after login)</button>
+        
+        <div id="loginResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Expected Results</h3>
+        <ul>
+            <li><strong>Login Success:</strong> Should return JWT token and user info</li>
+            <li><strong>Profile Success:</strong> Should return "Daniel Faculty" name and "DF" initials</li>
+            <li><strong>Welcome Message:</strong> Should show "Welcome back, Daniel Faculty"</li>
+            <li><strong>User Icon:</strong> Should show "DF" initials</li>
+        </ul>
+    </div>
+
+    <script>
+        let authToken = null;
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('loginResult');
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = data.token;
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h4>✅ Login Successful!</h4>
+                        <p><strong>Name:</strong> ${data.user.first_name} ${data.user.last_name}</p>
+                        <p><strong>Email:</strong> ${data.user.email}</p>
+                        <p><strong>Role:</strong> ${data.user.role}</p>
+                        <p><strong>Faculty ID:</strong> ${data.user.faculty_id}</p>
+                        <p><strong>Token:</strong> ${data.token.substring(0, 50)}...</p>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `<h4>❌ Login Failed!</h4><p>${data.message}</p>`;
+                }
+                
+                resultDiv.style.display = 'block';
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<h4>❌ Error!</h4><p>${error.message}</p>`;
+                resultDiv.style.display = 'block';
+            }
+        }
+
+        async function testProfile() {
+            const resultDiv = document.getElementById('loginResult');
+            
+            if (!authToken) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '<h4>❌ Please login first!</h4>';
+                resultDiv.style.display = 'block';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/faculty/profile', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Cookie': `token=${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const faculty = data.data;
+                    const initials = faculty.first_name.charAt(0) + faculty.last_name.charAt(0);
+                    const fullName = faculty.first_name + ' ' + faculty.last_name;
+                    
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h4>✅ Profile Retrieved Successfully!</h4>
+                        <p><strong>Full Name:</strong> ${fullName}</p>
+                        <p><strong>Initials:</strong> ${initials}</p>
+                        <p><strong>Faculty ID:</strong> ${faculty.faculty_id}</p>
+                        <p><strong>Department:</strong> ${faculty.department}</p>
+                        <p><strong>Designation:</strong> ${faculty.designation}</p>
+                        <p><strong>Welcome Message:</strong> "Welcome back, ${fullName}"</p>
+                        <hr>
+                        <h5>Frontend Display Test:</h5>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #8b5cf6, #ec4899); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                ${initials}
+                            </div>
+                            <div>
+                                <div style="font-weight: bold;">${fullName.toUpperCase()}</div>
+                                <div style="font-size: 12px; color: #666;">Faculty</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `<h4>❌ Profile Failed!</h4><p>${data.message}</p>`;
+                }
+                
+                resultDiv.style.display = 'block';
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<h4>❌ Error!</h4><p>${error.message}</p>`;
+                resultDiv.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

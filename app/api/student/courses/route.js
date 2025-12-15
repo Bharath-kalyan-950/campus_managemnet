@@ -14,6 +14,9 @@ export async function GET(request) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
+    // Use registration number for direct lookup - simpler and faster
+    const registrationNumber = decoded.registration_number || decoded.student_id;
+    
     // Get student's enrolled courses with comprehensive details
     const courses = await executeQuery(`
       SELECT 
@@ -34,15 +37,15 @@ export async function GET(request) {
       FROM enrollments e
       JOIN courses c ON e.course_code = c.course_code
       LEFT JOIN faculty f ON e.faculty_id = f.faculty_id
-      LEFT JOIN users u ON f.user_id = u.id
+      LEFT JOIN users u ON f.faculty_id = u.user_id
       WHERE e.student_id = ?
       ORDER BY c.semester, c.course_code
-    `, [decoded.student_id]);
+    `, [registrationNumber]);
 
     // Get attendance summary for each course
     const coursesWithDetails = await Promise.all(
       courses.map(async (course) => {
-        // Get attendance data
+        // Get attendance data using registration number
         const attendanceData = await executeQuery(`
           SELECT 
             COUNT(*) as total_classes,
@@ -51,7 +54,7 @@ export async function GET(request) {
             SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late_count
           FROM attendance 
           WHERE student_id = ? AND course_code = ?
-        `, [decoded.student_id, course.course_code]);
+        `, [registrationNumber, course.course_code]);
 
         const attendance = attendanceData[0] || { total_classes: 0, present_count: 0, absent_count: 0, late_count: 0 };
         const attendancePercentage = attendance.total_classes > 0 
@@ -65,13 +68,13 @@ export async function GET(request) {
           WHERE course_code = ?
         `, [course.course_code]);
 
-        // Get submitted assignments count
+        // Get submitted assignments count using registration number
         const submissionData = await executeQuery(`
           SELECT COUNT(*) as submitted_assignments
           FROM assignment_submissions asub
           JOIN assignments a ON asub.assignment_id = a.assignment_id
           WHERE a.course_code = ? AND asub.student_id = ?
-        `, [course.course_code, decoded.student_id]);
+        `, [course.course_code, registrationNumber]);
 
         return {
           ...course,

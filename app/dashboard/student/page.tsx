@@ -1,7 +1,43 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+
+interface UserInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  studentId: string;
+}
+
 export default function StudentDashboard() {
-  const studentName = "John Doe";
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+
+  useEffect(() => {
+    fetchUserInfo();
+  }, []);
+
+  const fetchUserInfo = async () => {
+    try {
+      const response = await fetch('/api/student/profile');
+      const data = await response.json();
+      
+      if (data.success) {
+        setUserInfo({
+          firstName: data.data.first_name,
+          lastName: data.data.last_name,
+          email: data.data.email,
+          studentId: data.data.student_id
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user info:', error);
+    }
+  };
+
+  const getFullName = () => {
+    if (!userInfo) return 'Student';
+    return `${userInfo.firstName} ${userInfo.lastName}`;
+  };
 
   const quickStats = [
     { title: 'Enrolled Courses', value: '8', icon: '📚', color: 'from-blue-500 to-blue-600', change: '+2 this sem' },
@@ -35,7 +71,7 @@ export default function StudentDashboard() {
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-xl">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Welcome back, {studentName}! 👋</h1>
+            <h1 className="text-3xl font-bold mb-2">Welcome back, {getFullName()}! 👋</h1>
             <p className="text-blue-100">Here's what's happening with your academics today</p>
           </div>
           <div className="hidden md:block">

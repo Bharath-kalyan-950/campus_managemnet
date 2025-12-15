@@ -14,15 +14,20 @@ export async function GET(request) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
+
+
+    // Use registration number for direct lookup - simpler and faster
+    const registrationNumber = decoded.registration_number || decoded.faculty_id;
+    
     const profile = await executeQuery(`
       SELECT 
         u.first_name, u.last_name, u.email, u.phone,
         f.faculty_id, f.department, f.designation, f.qualification,
         f.experience_years, f.specialization, f.office_room, f.joining_date
-      FROM users u
-      JOIN faculty f ON u.id = f.user_id
+      FROM faculty f
+      JOIN users u ON f.faculty_id = u.user_id
       WHERE f.faculty_id = ?
-    `, [decoded.faculty_id]);
+    `, [registrationNumber]);
 
     if (profile.length === 0) {
       return NextResponse.json({ success: false, message: 'Profile not found' }, { status: 404 });

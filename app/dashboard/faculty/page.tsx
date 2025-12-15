@@ -1,12 +1,59 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
+interface UserInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  facultyId: string;
+}
+
 export default function FacultyDashboard() {
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUserInfo();
+  }, []);
+
+  const fetchUserInfo = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/faculty/profile');
+      const data = await response.json();
+      
+      if (data.success) {
+        setUserInfo({
+          firstName: data.data.first_name,
+          lastName: data.data.last_name,
+          email: data.data.email,
+          facultyId: data.data.faculty_id
+        });
+      } else {
+        console.error('Failed to fetch user info:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching user info:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getFullName = () => {
+    if (loading) return 'Loading...';
+    if (!userInfo) return 'Faculty Member';
+    return `${userInfo.firstName} ${userInfo.lastName}`;
+  };
+
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-          Welcome to Faculty Portal
+          Welcome back, {getFullName()}
         </h1>
-        <p className="text-slate-600 text-lg">Prof. Daniel</p>
+        <p className="text-slate-600 text-lg">Faculty Portal Dashboard</p>
       </div>
 
       {/* Quick Stats */}

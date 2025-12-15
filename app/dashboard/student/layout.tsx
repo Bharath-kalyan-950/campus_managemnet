@@ -1,7 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+
+interface UserInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  studentId: string;
+}
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -9,8 +16,38 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
   const [showInfraSubmenu, setShowInfraSubmenu] = useState(false);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+
+  useEffect(() => {
+    fetchUserInfo();
+  }, []);
+
+  const fetchUserInfo = async () => {
+    try {
+      const response = await fetch('/api/student/profile');
+      const data = await response.json();
+      
+      if (data.success) {
+        setUserInfo({
+          firstName: data.data.first_name,
+          lastName: data.data.last_name,
+          email: data.data.email,
+          studentId: data.data.student_id
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user info:', error);
+    }
+  };
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  };
+
+  const getFullName = (firstName: string, lastName: string) => {
+    return `${firstName} ${lastName}`;
+  };
 
   const menuItems = [
     { name: 'Home', icon: '🏠', path: '/dashboard/student' },
@@ -38,8 +75,14 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     { id: 3, title: 'Fee Payment Reminder', message: 'Due date: 15th March', time: '1 day ago', unread: false },
   ];
 
-  const handleLogout = () => {
-    router.push('/');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      router.push('/');
+    }
   };
 
   return (
@@ -227,10 +270,12 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold shadow-lg">
-                        JD
+                        {userInfo ? getInitials(userInfo.firstName, userInfo.lastName) : 'ST'}
                       </div>
                       <div className="hidden md:block text-left">
-                        <p className="text-sm font-bold text-slate-900">John Doe</p>
+                        <p className="text-sm font-bold text-slate-900">
+                          {userInfo ? getFullName(userInfo.firstName, userInfo.lastName) : 'Loading...'}
+                        </p>
                         <p className="text-xs text-slate-600">Student</p>
                       </div>
                     </div>
@@ -242,11 +287,15 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       <div className="p-4 border-b border-slate-200">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                            JD
+                            {userInfo ? getInitials(userInfo.firstName, userInfo.lastName) : 'ST'}
                           </div>
                           <div>
-                            <h3 className="font-bold text-slate-900">John Doe</h3>
-                            <p className="text-sm text-slate-600">Student ID: STU2024001</p>
+                            <h3 className="font-bold text-slate-900">
+                              {userInfo ? getFullName(userInfo.firstName, userInfo.lastName) : 'Loading...'}
+                            </h3>
+                            <p className="text-sm text-slate-600">
+                              Student ID: {userInfo ? userInfo.studentId : 'Loading...'}
+                            </p>
                           </div>
                         </div>
                       </div>

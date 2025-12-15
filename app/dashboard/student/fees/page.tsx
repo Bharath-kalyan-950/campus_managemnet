@@ -1,25 +1,53 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+
 export default function FeesPage() {
-  const feeBreakdown = [
-    { category: 'Tuition Fee', amount: 15000, status: 'Paid', dueDate: 'Jan 15, 2024' },
-    { category: 'Lab Fee', amount: 3000, status: 'Paid', dueDate: 'Jan 15, 2024' },
-    { category: 'Library Fee', amount: 1000, status: 'Paid', dueDate: 'Jan 15, 2024' },
-    { category: 'Sports Fee', amount: 500, status: 'Paid', dueDate: 'Jan 15, 2024' },
-    { category: 'Exam Fee', amount: 2000, status: 'Pending', dueDate: 'Mar 15, 2024' },
-    { category: 'Hostel Fee', amount: 5000, status: 'Pending', dueDate: 'Mar 15, 2024' },
-  ];
+  const [feeData, setFeeData] = useState({ structure: [], payments: [] });
+  const [loading, setLoading] = useState(true);
 
-  const paymentHistory = [
-    { id: 'PAY001', date: 'Jan 15, 2024', amount: 19500, method: 'Online', status: 'Success', receipt: 'REC001' },
-    { id: 'PAY002', date: 'Dec 10, 2023', amount: 20000, method: 'Bank Transfer', status: 'Success', receipt: 'REC002' },
-    { id: 'PAY003', date: 'Sep 5, 2023', amount: 25000, method: 'Online', status: 'Success', receipt: 'REC003' },
-  ];
+  useEffect(() => {
+    fetchFees();
+  }, []);
 
-  const totalFees = feeBreakdown.reduce((sum, item) => sum + item.amount, 0);
-  const paidFees = feeBreakdown.filter(item => item.status === 'Paid').reduce((sum, item) => sum + item.amount, 0);
+  const fetchFees = async () => {
+    try {
+      const response = await fetch('/api/student/fees');
+      const data = await response.json();
+      
+      if (data.success) {
+        setFeeData(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching fees:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const totalFees = feeData.structure.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+  const paidFees = feeData.structure.reduce((sum, item) => sum + parseFloat(item.paid_amount || 0), 0);
   const pendingFees = totalFees - paidFees;
-  const paidPercentage = (paidFees / totalFees) * 100;
+  const paidPercentage = totalFees > 0 ? (paidFees / totalFees) * 100 : 0;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading fees information...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -32,7 +60,7 @@ export default function FeesPage() {
             </div>
             <div>
               <p className="text-sm text-slate-600">Total Fees</p>
-              <p className="text-2xl font-bold text-slate-900">${totalFees.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-slate-900">₹{totalFees.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -43,7 +71,7 @@ export default function FeesPage() {
             </div>
             <div>
               <p className="text-sm text-slate-600">Paid</p>
-              <p className="text-2xl font-bold text-emerald-600">${paidFees.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-emerald-600">₹{paidFees.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -54,7 +82,7 @@ export default function FeesPage() {
             </div>
             <div>
               <p className="text-sm text-slate-600">Pending</p>
-              <p className="text-2xl font-bold text-orange-600">${pendingFees.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-orange-600">₹{pendingFees.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -92,23 +120,30 @@ export default function FeesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {feeBreakdown.map((fee, idx) => (
+                  {feeData.structure.map((fee, idx) => (
                     <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                      <td className="py-4 px-4 font-semibold text-slate-900">{fee.category}</td>
-                      <td className="py-4 px-4 text-right font-bold text-slate-900">${fee.amount.toLocaleString()}</td>
-                      <td className="py-4 px-4 text-center text-slate-600">{fee.dueDate}</td>
+                      <td className="py-4 px-4 font-semibold text-slate-900">{fee.fee_type}</td>
+                      <td className="py-4 px-4 text-right font-bold text-slate-900">₹{parseFloat(fee.amount).toLocaleString()}</td>
+                      <td className="py-4 px-4 text-center text-slate-600">{formatDate(fee.due_date)}</td>
                       <td className="py-4 px-4 text-center">
                         <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                          fee.status === 'Paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'
+                          fee.status === 'paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'
                         }`}>
-                          {fee.status}
+                          {fee.status === 'paid' ? 'Paid' : 'Pending'}
                         </span>
                       </td>
                     </tr>
                   ))}
+                  {feeData.structure.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-slate-500">
+                        No fee structure available
+                      </td>
+                    </tr>
+                  )}
                   <tr className="border-t-2 border-slate-200 bg-slate-50">
                     <td className="py-4 px-4 font-bold text-slate-900">Total</td>
-                    <td className="py-4 px-4 text-right font-bold text-blue-600 text-lg">${totalFees.toLocaleString()}</td>
+                    <td className="py-4 px-4 text-right font-bold text-blue-600 text-lg">₹{totalFees.toLocaleString()}</td>
                     <td colSpan={2}></td>
                   </tr>
                 </tbody>
@@ -120,8 +155,8 @@ export default function FeesPage() {
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
             <h2 className="text-2xl font-bold text-slate-900 mb-6">Payment History</h2>
             <div className="space-y-3">
-              {paymentHistory.map((payment) => (
-                <div key={payment.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition">
+              {feeData.payments.map((payment) => (
+                <div key={payment.payment_id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
                       <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -129,9 +164,9 @@ export default function FeesPage() {
                       </svg>
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900">${payment.amount.toLocaleString()}</p>
-                      <p className="text-sm text-slate-600">{payment.date} • {payment.method}</p>
-                      <p className="text-xs text-slate-500">Transaction ID: {payment.id}</p>
+                      <p className="font-bold text-slate-900">₹{parseFloat(payment.amount).toLocaleString()}</p>
+                      <p className="text-sm text-slate-600">{formatDate(payment.payment_date)} • {payment.payment_method}</p>
+                      <p className="text-xs text-slate-500">Transaction ID: {payment.transaction_id || payment.payment_id}</p>
                     </div>
                   </div>
                   <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition text-sm">
@@ -139,6 +174,9 @@ export default function FeesPage() {
                   </button>
                 </div>
               ))}
+              {feeData.payments.length === 0 && (
+                <p className="text-center text-slate-500 py-4">No payment history available</p>
+              )}
             </div>
           </div>
         </div>
@@ -190,14 +228,14 @@ export default function FeesPage() {
                   <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
                   <span className="text-sm font-semibold text-slate-700">Paid</span>
                 </div>
-                <span className="font-bold text-emerald-600">${paidFees.toLocaleString()}</span>
+                <span className="font-bold text-emerald-600">₹{paidFees.toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
                   <span className="text-sm font-semibold text-slate-700">Pending</span>
                 </div>
-                <span className="font-bold text-orange-600">${pendingFees.toLocaleString()}</span>
+                <span className="font-bold text-orange-600">₹{pendingFees.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -230,7 +268,7 @@ export default function FeesPage() {
               <div>
                 <h3 className="font-bold text-orange-900 mb-1">Payment Reminder</h3>
                 <p className="text-sm text-orange-700">
-                  You have ${pendingFees.toLocaleString()} pending. Please pay before Mar 15, 2024 to avoid late fees.
+                  You have ₹{pendingFees.toLocaleString()} pending. Please pay before the due date to avoid late fees.
                 </p>
               </div>
             </div>

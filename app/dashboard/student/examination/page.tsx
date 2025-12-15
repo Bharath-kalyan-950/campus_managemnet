@@ -1,29 +1,56 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+
 export default function ExaminationPage() {
-  const examTimetable = [
-    { subject: 'Data Structures & Algorithms', code: 'CS301', date: 'March 15, 2024', time: '09:00 AM - 12:00 PM', room: 'Hall A', duration: '3 hours' },
-    { subject: 'Database Management Systems', code: 'CS302', date: 'March 18, 2024', time: '02:00 PM - 05:00 PM', room: 'Hall B', duration: '3 hours' },
-    { subject: 'Web Development', code: 'CS303', date: 'March 21, 2024', time: '09:00 AM - 12:00 PM', room: 'Hall A', duration: '3 hours' },
-    { subject: 'Operating Systems', code: 'CS304', date: 'March 24, 2024', time: '02:00 PM - 05:00 PM', room: 'Hall C', duration: '3 hours' },
-    { subject: 'Computer Networks', code: 'CS305', date: 'March 27, 2024', time: '09:00 AM - 12:00 PM', room: 'Hall B', duration: '3 hours' },
-  ];
+  const [examData, setExamData] = useState({ upcoming: [], results: [] });
+  const [loading, setLoading] = useState(true);
 
-  const internalMarks = [
-    { subject: 'Data Structures & Algorithms', code: 'CS301', test1: 18, test2: 20, assignment: 9, total: 47, outOf: 50 },
-    { subject: 'Database Management Systems', code: 'CS302', test1: 17, test2: 19, assignment: 8, total: 44, outOf: 50 },
-    { subject: 'Web Development', code: 'CS303', test1: 19, test2: 20, assignment: 10, total: 49, outOf: 50 },
-    { subject: 'Operating Systems', code: 'CS304', test1: 16, test2: 18, assignment: 8, total: 42, outOf: 50 },
-    { subject: 'Computer Networks', code: 'CS305', test1: 18, test2: 19, assignment: 9, total: 46, outOf: 50 },
-  ];
+  useEffect(() => {
+    fetchExaminations();
+  }, []);
 
-  const results = [
-    { subject: 'Data Structures & Algorithms', code: 'CS301', internal: 47, external: 78, total: 125, grade: 'A+', credits: 4 },
-    { subject: 'Database Management Systems', code: 'CS302', internal: 44, external: 72, total: 116, grade: 'A', credits: 4 },
-    { subject: 'Web Development', code: 'CS303', internal: 49, external: 85, total: 134, grade: 'A+', credits: 3 },
-    { subject: 'Operating Systems', code: 'CS304', internal: 42, external: 68, total: 110, grade: 'A', credits: 4 },
-    { subject: 'Computer Networks', code: 'CS305', internal: 46, external: 75, total: 121, grade: 'A+', credits: 3 },
-  ];
+  const fetchExaminations = async () => {
+    try {
+      const response = await fetch('/api/student/examinations');
+      const data = await response.json();
+      
+      if (data.success) {
+        setExamData(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching examinations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (timeString) => {
+    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading examinations...</p>
+        </div>
+      </div>
+    );
+  }
 
   const getGradeColor = (grade: string) => {
     if (grade === 'A+') return 'bg-emerald-100 text-emerald-600';
@@ -43,7 +70,7 @@ export default function ExaminationPage() {
             </div>
             <div>
               <p className="text-sm text-slate-600">Upcoming Exams</p>
-              <p className="text-2xl font-bold text-slate-900">{examTimetable.length}</p>
+              <p className="text-2xl font-bold text-slate-900">{examData.upcoming.length}</p>
             </div>
           </div>
         </div>
@@ -54,7 +81,7 @@ export default function ExaminationPage() {
             </div>
             <div>
               <p className="text-sm text-slate-600">Completed</p>
-              <p className="text-2xl font-bold text-slate-900">{results.length}</p>
+              <p className="text-2xl font-bold text-slate-900">{examData.results.length}</p>
             </div>
           </div>
         </div>
@@ -65,7 +92,11 @@ export default function ExaminationPage() {
             </div>
             <div>
               <p className="text-sm text-slate-600">Average Score</p>
-              <p className="text-2xl font-bold text-slate-900">85%</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {examData.results.length > 0 
+                  ? Math.round(examData.results.reduce((acc, result) => acc + ((result.marks_obtained / result.max_marks) * 100), 0) / examData.results.length)
+                  : 0}%
+              </p>
             </div>
           </div>
         </div>
@@ -75,8 +106,10 @@ export default function ExaminationPage() {
               🎓
             </div>
             <div>
-              <p className="text-sm text-slate-600">Current CGPA</p>
-              <p className="text-2xl font-bold text-slate-900">8.5</p>
+              <p className="text-sm text-slate-600">Latest Grade</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {examData.results.length > 0 ? examData.results[0].grade || 'N/A' : 'N/A'}
+              </p>
             </div>
           </div>
         </div>
@@ -106,70 +139,37 @@ export default function ExaminationPage() {
               </tr>
             </thead>
             <tbody>
-              {examTimetable.map((exam, idx) => (
+              {examData.upcoming.map((exam, idx) => (
                 <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                  <td className="py-4 px-4 font-semibold text-slate-900">{exam.subject}</td>
+                  <td className="py-4 px-4 font-semibold text-slate-900">{exam.course_name}</td>
                   <td className="py-4 px-4">
                     <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-semibold">
-                      {exam.code}
+                      {exam.course_code}
                     </span>
                   </td>
-                  <td className="py-4 px-4 text-slate-600">{exam.date}</td>
-                  <td className="py-4 px-4 text-slate-600">{exam.time}</td>
+                  <td className="py-4 px-4 text-slate-600">{formatDate(exam.exam_date)}</td>
+                  <td className="py-4 px-4 text-slate-600">{formatTime(exam.start_time)} - {exam.duration} mins</td>
                   <td className="py-4 px-4">
                     <span className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-sm font-semibold">
-                      {exam.room}
+                      {exam.venue || 'TBA'}
                     </span>
                   </td>
-                  <td className="py-4 px-4 text-slate-600">{exam.duration}</td>
+                  <td className="py-4 px-4 text-slate-600">{exam.exam_type}</td>
                 </tr>
               ))}
+              {examData.upcoming.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-500">
+                    No upcoming examinations scheduled
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Internal Marks */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">Internal Assessment Marks</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b-2 border-slate-200">
-                <th className="text-left py-4 px-4 font-bold text-slate-700">Subject</th>
-                <th className="text-center py-4 px-4 font-bold text-slate-700">Test 1</th>
-                <th className="text-center py-4 px-4 font-bold text-slate-700">Test 2</th>
-                <th className="text-center py-4 px-4 font-bold text-slate-700">Assignment</th>
-                <th className="text-center py-4 px-4 font-bold text-slate-700">Total</th>
-                <th className="text-center py-4 px-4 font-bold text-slate-700">Percentage</th>
-              </tr>
-            </thead>
-            <tbody>
-              {internalMarks.map((mark, idx) => (
-                <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                  <td className="py-4 px-4">
-                    <div>
-                      <p className="font-semibold text-slate-900">{mark.subject}</p>
-                      <p className="text-sm text-slate-600">{mark.code}</p>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 text-center font-semibold text-slate-900">{mark.test1}/20</td>
-                  <td className="py-4 px-4 text-center font-semibold text-slate-900">{mark.test2}/20</td>
-                  <td className="py-4 px-4 text-center font-semibold text-slate-900">{mark.assignment}/10</td>
-                  <td className="py-4 px-4 text-center">
-                    <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-bold">
-                      {mark.total}/{mark.outOf}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-center font-bold text-emerald-600">
-                    {((mark.total / mark.outOf) * 100).toFixed(0)}%
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+
 
       {/* Results with Graph */}
       <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
@@ -189,29 +189,36 @@ export default function ExaminationPage() {
               </tr>
             </thead>
             <tbody>
-              {results.map((result, idx) => (
+              {examData.results.map((result, idx) => (
                 <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50 transition">
                   <td className="py-4 px-4">
                     <div>
-                      <p className="font-semibold text-slate-900">{result.subject}</p>
-                      <p className="text-sm text-slate-600">{result.code}</p>
+                      <p className="font-semibold text-slate-900">{result.course_name}</p>
+                      <p className="text-sm text-slate-600">{result.course_code}</p>
                     </div>
                   </td>
-                  <td className="py-4 px-4 text-center font-semibold text-slate-900">{result.internal}/50</td>
-                  <td className="py-4 px-4 text-center font-semibold text-slate-900">{result.external}/100</td>
+                  <td className="py-4 px-4 text-center font-semibold text-slate-900">-</td>
+                  <td className="py-4 px-4 text-center font-semibold text-slate-900">{result.marks_obtained}</td>
                   <td className="py-4 px-4 text-center">
                     <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-bold">
-                      {result.total}/150
+                      {result.marks_obtained}/{result.max_marks}
                     </span>
                   </td>
                   <td className="py-4 px-4 text-center">
-                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${getGradeColor(result.grade)}`}>
-                      {result.grade}
+                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${getGradeColor(result.grade || 'N/A')}`}>
+                      {result.grade || 'N/A'}
                     </span>
                   </td>
-                  <td className="py-4 px-4 text-center font-semibold text-slate-900">{result.credits}</td>
+                  <td className="py-4 px-4 text-center font-semibold text-slate-900">-</td>
                 </tr>
               ))}
+              {examData.results.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-500">
+                    No exam results available
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -220,20 +227,25 @@ export default function ExaminationPage() {
         <div>
           <h3 className="font-bold text-slate-900 mb-4">Performance Overview</h3>
           <div className="space-y-4">
-            {results.map((result, idx) => (
+            {examData.results.map((result, idx) => (
               <div key={idx}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-slate-700">{result.code}</span>
-                  <span className="text-sm font-bold text-blue-600">{((result.total / 150) * 100).toFixed(1)}%</span>
+                  <span className="text-sm font-semibold text-slate-700">{result.course_code}</span>
+                  <span className="text-sm font-bold text-blue-600">
+                    {((result.marks_obtained / result.max_marks) * 100).toFixed(1)}%
+                  </span>
                 </div>
                 <div className="w-full bg-slate-200 rounded-full h-3">
                   <div
                     className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all"
-                    style={{ width: `${(result.total / 150) * 100}%` }}
+                    style={{ width: `${(result.marks_obtained / result.max_marks) * 100}%` }}
                   ></div>
                 </div>
               </div>
             ))}
+            {examData.results.length === 0 && (
+              <p className="text-center text-slate-500 py-4">No results to display</p>
+            )}
           </div>
         </div>
       </div>

@@ -1,35 +1,57 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function FeedbackPage() {
   const [showInProgress, setShowInProgress] = useState(true);
   const [showCompleted, setShowCompleted] = useState(true);
+  const [feedbackData, setFeedbackData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const inProgressCourses = [
-    {
-      courseCode: 'MMA11150',
-      courseName: 'MENTOR MENTEE MEETING',
-      status: 'InProgress',
-      facultyName: 'Dr. C Sunitha Ram',
-      enrollOn: '07/02/2025',
-    },
-    {
-      courseCode: 'SPIC732',
-      courseName: 'Product Design and Development for Next Generation',
-      status: 'InProgress',
-      facultyName: 'Dr.Moorthy A',
-      enrollOn: '23/10/2025',
-    },
-  ];
+  useEffect(() => {
+    fetchFeedbackData();
+  }, []);
 
-  const completedCourses = [
-    { sno: 1, courseCode: 'UBA29', courseName: 'Technical English', facultyName: '', monthYear: 'October-2025' },
-    { sno: 2, courseCode: 'SPIC4', courseName: 'Core Project', facultyName: '', monthYear: 'September-2025' },
-    { sno: 3, courseCode: 'SPIC9', courseName: 'Professional Certification', facultyName: '', monthYear: 'September-2025' },
-    { sno: 4, courseCode: 'CSA15', courseName: 'Cloud Computing and Big Data Analytics', facultyName: '', monthYear: 'July-2025' },
-    { sno: 5, courseCode: 'UBA10', courseName: 'Numerical Methods', facultyName: '', monthYear: 'July-2025' },
-  ];
+  const fetchFeedbackData = async () => {
+    try {
+      const response = await fetch('/api/student/feedback');
+      const data = await response.json();
+      
+      if (data.success) {
+        setFeedbackData(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching feedback data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitFeedback = async (courseCode: string, facultyId: string) => {
+    // This would open a feedback form modal
+    alert('Feedback form would open here');
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short'
+    });
+  };
+
+  const inProgressCourses = feedbackData.filter(course => !course.feedback_date);
+  const completedCourses = feedbackData.filter(course => course.feedback_date);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading feedback information...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -77,22 +99,32 @@ export default function FeedbackPage() {
               <tbody>
                 {inProgressCourses.map((course, idx) => (
                   <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                    <td className="py-4 px-4 font-semibold text-slate-900">{course.courseCode}</td>
-                    <td className="py-4 px-4 text-slate-700">{course.courseName}</td>
+                    <td className="py-4 px-4 font-semibold text-slate-900">{course.course_code}</td>
+                    <td className="py-4 px-4 text-slate-700">{course.course_name}</td>
                     <td className="py-4 px-4 text-center">
                       <span className="px-4 py-1 bg-blue-500 text-white rounded text-sm font-semibold">
-                        {course.status}
+                        InProgress
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-slate-700">{course.facultyName}</td>
-                    <td className="py-4 px-4 text-slate-700">{course.enrollOn}</td>
+                    <td className="py-4 px-4 text-slate-700">{course.faculty_name || 'TBA'}</td>
+                    <td className="py-4 px-4 text-slate-700">-</td>
                     <td className="py-4 px-4 text-center">
-                      <button className="px-6 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm">
+                      <button 
+                        onClick={() => submitFeedback(course.course_code, course.faculty_id)}
+                        className="px-6 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm"
+                      >
                         Submit Feedback
                       </button>
                     </td>
                   </tr>
                 ))}
+                {inProgressCourses.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-500">
+                      No courses available for feedback
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -133,20 +165,27 @@ export default function FeedbackPage() {
                 </tr>
               </thead>
               <tbody>
-                {completedCourses.map((course) => (
-                  <tr key={course.sno} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                    <td className="py-4 px-4 font-semibold text-slate-900">{course.sno}</td>
-                    <td className="py-4 px-4 font-semibold text-slate-900">{course.courseCode}</td>
-                    <td className="py-4 px-4 text-slate-700">{course.courseName}</td>
-                    <td className="py-4 px-4 text-slate-700">{course.facultyName || '-'}</td>
-                    <td className="py-4 px-4 text-slate-700">{course.monthYear}</td>
+                {completedCourses.map((course, idx) => (
+                  <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50 transition">
+                    <td className="py-4 px-4 font-semibold text-slate-900">{idx + 1}</td>
+                    <td className="py-4 px-4 font-semibold text-slate-900">{course.course_code}</td>
+                    <td className="py-4 px-4 text-slate-700">{course.course_name}</td>
+                    <td className="py-4 px-4 text-slate-700">{course.faculty_name || '-'}</td>
+                    <td className="py-4 px-4 text-slate-700">{formatDate(course.feedback_date)}</td>
                     <td className="py-4 px-4 text-center">
-                      <button className="px-6 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm">
-                        Submit Feedback
-                      </button>
+                      <span className="px-6 py-2 bg-emerald-100 text-emerald-600 rounded-lg font-semibold text-sm">
+                        Submitted
+                      </span>
                     </td>
                   </tr>
                 ))}
+                {completedCourses.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-500">
+                      No feedback submitted yet
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
