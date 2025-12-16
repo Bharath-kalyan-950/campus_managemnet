@@ -108,10 +108,16 @@ export default function LoginPage() {
                     required
                   />
                 </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <span className="inline-flex items-center gap-1">
-                    💡 Try: <span className="font-semibold text-blue-600">admin@simats.edu</span>, <span className="font-semibold text-purple-600">daniel@simats.edu</span>, or <span className="font-semibold text-pink-600">john.doe@simats.edu</span>
-                  </span>
+                <div className="space-y-1 text-xs text-slate-500">
+                  <div className="flex items-center gap-1">
+                    💡 <span className="font-medium">Try these working accounts:</span>
+                  </div>
+                  <div className="pl-4 space-y-0.5">
+                    <div>👨‍🎓 Student: <span className="font-semibold text-blue-600">rajesh.kumar@simats.edu</span></div>
+                    <div>👨‍🏫 Faculty: <span className="font-semibold text-purple-600">daniel@simats.edu</span></div>
+                    <div>👨‍💼 Admin: <span className="font-semibold text-pink-600">admin@simats.edu</span></div>
+                    <div className="text-slate-400">Password: <span className="font-semibold">password</span></div>
+                  </div>
                 </div>
               </div>
 
