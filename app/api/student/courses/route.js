@@ -17,7 +17,7 @@ export async function GET(request) {
     // Use registration number for direct lookup - simpler and faster
     const registrationNumber = decoded.registration_number || decoded.student_id;
     
-    // Get student's enrolled courses with comprehensive details
+    // Get student's enrolled courses from both old enrollments table and new enrollment system
     const courses = await executeQuery(`
       SELECT 
         c.course_code, 
@@ -27,20 +27,54 @@ export async function GET(request) {
         c.year,
         c.course_type,
         c.description,
-        e.status, 
+        c.slot,
+        COALESCE(e.status, 'enrolled') as status, 
         e.grade, 
         e.grade_points,
-        e.enrollment_date,
+        COALESCE(e.enrollment_date, NOW()) as enrollment_date,
         CONCAT(u.first_name, ' ', u.last_name) as faculty_name,
         f.designation,
-        f.department as faculty_department
+        f.department as faculty_department,
+        'enrollment_system' as source
       FROM enrollments e
       JOIN courses c ON e.course_code = c.course_code
       LEFT JOIN faculty f ON e.faculty_id = f.faculty_id
-      LEFT JOIN users u ON f.faculty_id = u.user_id
-      WHERE e.student_id = ?
-      ORDER BY c.semester, c.course_code
-    `, [registrationNumber]);
+      LEFT JOIN users u ON f.user_id = u.id
+      WHERE e.student_id = ? AND e.status = 'enrolled'
+      
+      UNION ALL
+      
+      SELECT 
+        c.course_code, 
+        c.course_name, 
+        c.credits, 
+        c.semester,
+        c.year,
+        c.course_type,
+        c.description,
+        c.slot,
+        'enrolled' as status, 
+        NULL as grade, 
+        NULL as grade_points,
+        NOW() as enrollment_date,
+        CONCAT(u.first_name, ' ', u.last_name) as faculty_name,
+        f.designation,
+        f.department as faculty_department,
+        'legacy_system' as source
+      FROM courses c
+      JOIN faculty f ON c.faculty_id = f.faculty_id
+      JOIN users u ON f.user_id = u.id
+      WHERE c.course_code IN (
+        SELECT DISTINCT course_code 
+        FROM enrollment_requests 
+        WHERE student_id = ? AND status = 'approved'
+      )
+      AND c.course_code NOT IN (
+        SELECT course_code FROM enrollments WHERE student_id = ?
+      )
+      
+      ORDER BY course_code
+    `, [registrationNumber, registrationNumber, registrationNumber]);
 
     // Get attendance summary for each course
     const coursesWithDetails = await Promise.all(

@@ -143,10 +143,18 @@ export default function FacultyDashboard() {
             </div>
           </button>
 
-          <button className="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group">
+          <a href="/dashboard/faculty/classroom-request" className="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group">
+            <div className="text-2xl">🏫</div>
+            <div className="text-left">
+              <h3 className="font-semibold text-slate-900 group-hover:text-indigo-600">Request Classroom</h3>
+              <p className="text-sm text-slate-600">AI-powered room allocation</p>
+            </div>
+          </a>
+
+          <button className="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-purple-500 hover:bg-purple-50 transition-all group">
             <div className="text-2xl">🎓</div>
             <div className="text-left">
-              <h3 className="font-semibold text-slate-900 group-hover:text-indigo-600">View Results</h3>
+              <h3 className="font-semibold text-slate-900 group-hover:text-purple-600">View Results</h3>
               <p className="text-sm text-slate-600">Check exam results</p>
             </div>
           </button>

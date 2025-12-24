@@ -25,10 +25,37 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
   const [showRaiseInfraSubmenu, setShowRaiseInfraSubmenu] = useState(false);
   const [showResultSubmenu, setShowResultSubmenu] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [classroomNotifications, setClassroomNotifications] = useState<any[]>([]);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   useEffect(() => {
     fetchUserInfo();
+    fetchClassroomNotifications();
+    // Refresh notifications every 30 seconds
+    const interval = setInterval(fetchClassroomNotifications, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  const fetchClassroomNotifications = async () => {
+    try {
+      const response = await fetch('/api/classroom-agent/notifications?recipient_type=faculty');
+      const data = await response.json();
+      
+      if (data.success) {
+        const notifications = data.data || [];
+        setClassroomNotifications(notifications);
+        // Count unread notifications (created in last 24 hours)
+        const unreadCount = notifications.filter(n => {
+          const createdAt = new Date(n.created_at);
+          const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          return createdAt > oneDayAgo;
+        }).length;
+        setNotificationCount(unreadCount);
+      }
+    } catch (error) {
+      console.error('Error fetching classroom notifications:', error);
+    }
+  };
 
   const fetchUserInfo = async () => {
     try {
@@ -66,11 +93,42 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
     { name: 'My Profile', icon: '👤', path: '/dashboard/faculty/profile' },
   ];
 
-  const notifications = [
-    { id: 1, title: 'New Assignment Submission', message: 'Student submitted assignment', time: '1 hour ago', unread: true },
-    { id: 2, title: 'Attendance Reminder', message: 'Mark attendance for today', time: '3 hours ago', unread: true },
-    { id: 3, title: 'Meeting Schedule', message: 'Faculty meeting at 3 PM', time: '5 hours ago', unread: false },
+  // Helper functions - defined before use
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hours ago`;
+    return `${Math.floor(diffInMinutes / 1440)} days ago`;
+  };
+
+  const isRecentNotification = (dateString: string) => {
+    const date = new Date(dateString);
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return date > oneDayAgo;
+  };
+
+  // Combine classroom notifications with general notifications
+  const generalNotifications = [
+    { id: 'gen1', title: 'New Assignment Submission', message: 'Student submitted assignment', time: '1 hour ago', unread: true, type: 'assignment' },
+    { id: 'gen2', title: 'Attendance Reminder', message: 'Mark attendance for today', time: '3 hours ago', unread: true, type: 'attendance' },
+    { id: 'gen3', title: 'Meeting Schedule', message: 'Faculty meeting at 3 PM', time: '5 hours ago', unread: false, type: 'meeting' },
   ];
+
+  // Format classroom notifications
+  const formattedClassroomNotifications = classroomNotifications.map(notif => ({
+    id: notif.notification_id,
+    title: notif.title,
+    message: notif.message,
+    time: formatTimeAgo(notif.created_at),
+    unread: isRecentNotification(notif.created_at),
+    type: 'classroom'
+  }));
+
+  // Combine all notifications
+  const allNotifications = [...formattedClassroomNotifications, ...generalNotifications];
 
   const handleLogout = async () => {
     try {
@@ -752,6 +810,24 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
                 )}
               </li>
 
+              {/* Classroom Request */}
+              <li>
+                <button
+                  onClick={() => {
+                    router.push('/dashboard/faculty/classroom-request');
+                    setSidebarOpen(false);
+                  }}
+                  className={`flex items-center w-full px-4 py-3 rounded-xl transition-all text-left group ${
+                    pathname === '/dashboard/faculty/classroom-request'
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/30'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="text-lg mr-3">🏫</span>
+                  <span className="font-medium text-sm">Classroom Request</span>
+                </button>
+              </li>
+
               {/* Rest of Menu Items */}
               {menuItems.slice(1).map((item) => (
                 <li key={item.path}>
@@ -818,7 +894,11 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                     </svg>
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                    {(notificationCount + allNotifications.filter(n => n.unread).length) > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
+                        {Math.min(notificationCount + allNotifications.filter(n => n.unread).length, 9)}
+                      </span>
+                    )}
                   </button>
 
                   {showNotifications && (
@@ -827,23 +907,36 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
                         <h3 className="font-bold text-slate-900">Notifications</h3>
                       </div>
                       <div className="max-h-96 overflow-y-auto">
-                        {notifications.map((notif) => (
-                          <div
-                            key={notif.id}
-                            className={`p-4 border-b border-slate-100 hover:bg-slate-50 cursor-pointer ${
-                              notif.unread ? 'bg-blue-50/50' : ''
-                            }`}
-                          >
-                            <div className="flex items-start gap-3">
-                              {notif.unread && <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>}
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-slate-900 text-sm">{notif.title}</h4>
-                                <p className="text-sm text-slate-600">{notif.message}</p>
-                                <p className="text-xs text-slate-500 mt-1">{notif.time}</p>
+                        {allNotifications.length === 0 ? (
+                          <div className="p-8 text-center text-slate-500">
+                            <div className="text-4xl mb-2">🔔</div>
+                            <p>No notifications yet</p>
+                          </div>
+                        ) : (
+                          allNotifications.map((notif) => (
+                            <div
+                              key={notif.id}
+                              className={`p-4 border-b border-slate-100 hover:bg-slate-50 cursor-pointer ${
+                                notif.unread ? 'bg-blue-50/50' : ''
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 mt-1">
+                                  {notif.type === 'classroom' && <span className="text-lg">🏫</span>}
+                                  {notif.type === 'assignment' && <span className="text-lg">📄</span>}
+                                  {notif.type === 'attendance' && <span className="text-lg">📅</span>}
+                                  {notif.type === 'meeting' && <span className="text-lg">👥</span>}
+                                </div>
+                                {notif.unread && <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>}
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-slate-900 text-sm truncate">{notif.title}</h4>
+                                  <p className="text-sm text-slate-600 line-clamp-2">{notif.message}</p>
+                                  <p className="text-xs text-slate-500 mt-1">{notif.time}</p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))
+                        )}
                       </div>
                     </div>
                   )}

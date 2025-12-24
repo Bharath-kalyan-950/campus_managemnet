@@ -1,92 +1,231 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function CourseApprovePage() {
   const [activeTab, setActiveTab] = useState('pending');
   const [searchTerm, setSearchTerm] = useState('');
   const [recordsPerPage, setRecordsPerPage] = useState('10');
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [facultyId, setFacultyId] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('');
+  const [selectedSlot, setSelectedSlot] = useState('');
+  const [facultyCourses, setFacultyCourses] = useState<any[]>([]);
 
-  const [pendingRequests, setPendingRequests] = useState([
-    {
-      regNo: 1,
-      student: 'John Doe (STU2024001)',
-      courseCode: 'CS307',
-      courseName: 'Machine Learning',
-      availableCount: 25,
-      requestedOn: '2024-12-01'
-    },
-    {
-      regNo: 2,
-      student: 'Jane Smith (STU2024002)',
-      courseCode: 'CS308',
-      courseName: 'Mobile App Development',
-      availableCount: 20,
-      requestedOn: '2024-12-02'
-    },
-    {
-      regNo: 3,
-      student: 'Mike Johnson (STU2024003)',
-      courseCode: 'CS307',
-      courseName: 'Machine Learning',
-      availableCount: 25,
-      requestedOn: '2024-12-02'
-    },
-  ]);
+  useEffect(() => {
+    // Get faculty ID from session
+    const userStr = localStorage.getItem('user');
+    console.log('🔍 User from localStorage:', userStr);
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        console.log('👤 Parsed user object:', user);
+        console.log('🆔 Faculty ID from user:', user.faculty_id);
+        const facultyIdToUse = user.faculty_id || user.registration_number || 'FAC2024001';
+        console.log('🆔 Final faculty ID to use:', facultyIdToUse);
+        setFacultyId(facultyIdToUse);
+      } catch (error) {
+        console.error('❌ Error parsing user from localStorage:', error);
+        setFacultyId('FAC2024001'); // Fallback
+      }
+    } else {
+      console.warn('⚠️ No user found in localStorage, using fallback');
+      setFacultyId('FAC2024001'); // Fallback
+    }
+  }, []);
 
-  const approvedRequests = [
-    {
-      regNo: 1,
-      student: 'Sarah Williams (STU2024004)',
-      courseCode: 'CS301',
-      courseName: 'Data Structures',
-      availableCount: 30,
-      requestedOn: '2024-11-28',
-      approvedOn: '2024-11-29'
-    },
-  ];
+  useEffect(() => {
+    if (facultyId) {
+      console.log('🔄 useEffect triggered - activeTab:', activeTab, 'facultyId:', facultyId);
+      fetchRequests();
+      fetchFacultyCourses();
+    }
+  }, [activeTab, facultyId]);
 
-  const rejectedRequests = [
-    {
-      regNo: 1,
-      student: 'David Brown (STU2024005)',
-      courseCode: 'CS310',
-      courseName: 'Cyber Security',
-      availableCount: 0,
-      requestedOn: '2024-11-27',
-      rejectedOn: '2024-11-28',
-      reason: 'Course full'
-    },
-  ];
-
-  const getCurrentRequests = () => {
-    switch(activeTab) {
-      case 'pending': return pendingRequests;
-      case 'approved': return approvedRequests;
-      case 'rejected': return rejectedRequests;
-      default: return pendingRequests;
+  const fetchFacultyCourses = async () => {
+    try {
+      const apiUrl = `/api/faculty/courses?faculty_id=${facultyId}`;
+      console.log('🔍 Fetching faculty courses from:', apiUrl);
+      
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      
+      console.log('📡 Faculty Courses API Response:', data);
+      
+      if (data.success) {
+        setFacultyCourses(data.data);
+        console.log('✅ Faculty courses set:', data.data.length, 'courses');
+      } else {
+        console.error('❌ Faculty Courses API Error:', data.error);
+      }
+    } catch (error) {
+      console.error('❌ Faculty Courses Fetch Error:', error);
     }
   };
 
-  const filteredRequests = getCurrentRequests().filter(req => 
-    req.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    req.courseCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    req.courseName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleApprove = (regNo: number) => {
-    const request = pendingRequests.find(r => r.regNo === regNo);
-    if (request) {
-      setPendingRequests(pendingRequests.filter(r => r.regNo !== regNo));
-      alert(`Approved enrollment for ${request.student} in ${request.courseName}`);
+  const fetchRequests = async () => {
+    if (!facultyId) {
+      console.warn('⚠️ No faculty ID available, skipping fetch');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const apiUrl = `/api/enrollment/requests?faculty_id=${facultyId}&status=${activeTab}`;
+      console.log('🔍 Fetching requests from:', apiUrl);
+      console.log('📊 Faculty ID:', facultyId);
+      console.log('📊 Active Tab:', activeTab);
+      
+      const response = await fetch(apiUrl);
+      console.log('📊 Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      console.log('📡 API Response for tab', activeTab, ':', data);
+      console.log('📊 Response success:', data.success);
+      console.log('📊 Response data length:', data.data ? data.data.length : 0);
+      
+      if (data.success && Array.isArray(data.data)) {
+        setRequests(data.data);
+        console.log('✅ Requests set for', activeTab, 'tab:', data.data.length, 'items');
+        
+        // Log each request for debugging
+        if (activeTab === 'enrolled') {
+          console.log('🎯 ENROLLED STUDENTS:');
+          data.data.forEach((req, index) => {
+            console.log(`   ${index + 1}. ${req.student_name} (${req.student_id}) - ${req.course_code} - Slot ${req.slot} - Enrolled: ${req.enrollment_date}`);
+          });
+        } else {
+          data.data.forEach((req, index) => {
+            console.log(`   ${index + 1}. ${req.student_name} - ${req.course_code} - Slot ${req.slot} - Status: ${req.status}`);
+          });
+        }
+      } else {
+        console.error('❌ API Error or invalid data:', data.error || 'Invalid response format');
+        setRequests([]);
+      }
+    } catch (error) {
+      console.error('❌ Fetch Error:', error);
+      setRequests([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleReject = (regNo: number) => {
-    const request = pendingRequests.find(r => r.regNo === regNo);
-    if (request) {
-      setPendingRequests(pendingRequests.filter(r => r.regNo !== regNo));
-      alert(`Rejected enrollment for ${request.student} in ${request.courseName}`);
+  const filteredRequests = requests.filter(req => {
+    const matchesSearch = req.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         req.course_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         req.course_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         req.student_id.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCourse = selectedCourse === '' || req.course_code === selectedCourse;
+    const matchesSlot = selectedSlot === '' || req.slot === selectedSlot;
+    
+    return matchesSearch && matchesCourse && matchesSlot;
+  });
+
+  const handleApprove = async (requestId: string, studentName: string, courseCode: string, slot: string) => {
+    const confirmMessage = `Are you sure you want to approve this enrollment?\n\nStudent: ${studentName}\nCourse: ${courseCode}\nSlot: ${slot}\n\nThis will enroll the student in the course and it will appear in their "My Courses" section.`;
+    
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/enrollment/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          request_id: requestId,
+          action: 'approve',
+          faculty_id: facultyId,
+          faculty_notes: `Approved by faculty for Slot ${slot}`
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`✅ Enrollment approved successfully!\n\nStudent: ${studentName}\nCourse: ${courseCode}\nSlot: ${slot}\n\nThe course will now appear in the student's "My Courses" section.`);
+        fetchRequests(); // Refresh the list
+      } else {
+        alert(data.error || 'Failed to approve request');
+      }
+    } catch (error) {
+      console.error('Error approving request:', error);
+      alert('Failed to approve request');
+    }
+  };
+
+  const handleReject = async (requestId: string) => {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (!reason) return;
+
+    try {
+      const response = await fetch('/api/enrollment/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          request_id: requestId,
+          action: 'reject',
+          faculty_id: facultyId,
+          faculty_notes: reason
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Enrollment request rejected');
+        fetchRequests(); // Refresh the list
+      } else {
+        alert(data.error || 'Failed to reject request');
+      }
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      alert('Failed to reject request');
+    }
+  };
+
+  const handleRejectEnrolled = async (studentId: string, courseCode: string, studentName: string) => {
+    const confirmMessage = `Are you sure you want to reject this enrolled student?\n\nStudent: ${studentName}\nCourse: ${courseCode}\n\nThis will drop the student from the course and free up a slot.`;
+    
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    const reason = prompt('Please provide a reason for rejecting this student:');
+    if (!reason) return;
+
+    try {
+      const response = await fetch('/api/enrollment/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reject_enrolled',
+          student_id: studentId,
+          course_code: courseCode,
+          faculty_id: facultyId,
+          faculty_notes: reason
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`✅ Student rejected from course successfully!\n\nStudent: ${studentName}\nCourse: ${courseCode}\n\nThe slot is now available for other students.`);
+        fetchRequests(); // Refresh the list
+      } else {
+        alert(data.error || 'Failed to reject student');
+      }
+    } catch (error) {
+      console.error('Error rejecting enrolled student:', error);
+      alert('Failed to reject student');
     }
   };
 
@@ -123,6 +262,17 @@ export default function CourseApprovePage() {
             Approved
           </button>
           <button
+            onClick={() => setActiveTab('enrolled')}
+            className={`flex-1 px-6 py-4 font-semibold transition-all ${
+              activeTab === 'enrolled'
+                ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
+                : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <span className="mr-2">👥</span>
+            Enrolled
+          </button>
+          <button
             onClick={() => setActiveTab('rejected')}
             className={`flex-1 px-6 py-4 font-semibold transition-all ${
               activeTab === 'rejected'
@@ -141,40 +291,97 @@ export default function CourseApprovePage() {
             <h3 className="text-lg font-bold text-slate-900 mb-4">
               {activeTab === 'pending' && 'Pending Enrolled Course Approval Pending'}
               {activeTab === 'approved' && 'Approved Enrollments'}
+              {activeTab === 'enrolled' && 'Currently Enrolled Students'}
               {activeTab === 'rejected' && 'Rejected Enrollments'}
             </h3>
             
             {/* Controls */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <select
-                  value={recordsPerPage}
-                  onChange={(e) => setRecordsPerPage(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
-                >
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                </select>
-                <span className="text-slate-600">records</span>
+            <div className="space-y-4 mb-6">
+              {/* Filters Row */}
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-semibold text-slate-700">Course:</label>
+                  <select
+                    value={selectedCourse}
+                    onChange={(e) => setSelectedCourse(e.target.value)}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 font-medium"
+                  >
+                    <option value="">All Courses</option>
+                    {facultyCourses.map((course) => (
+                      <option key={course.course_code} value={course.course_code}>
+                        {course.course_code} - {course.course_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-semibold text-slate-700">Slot:</label>
+                  <select
+                    value={selectedSlot}
+                    onChange={(e) => setSelectedSlot(e.target.value)}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 font-medium"
+                  >
+                    <option value="">All Slots</option>
+                    <option value="A">Slot A</option>
+                    <option value="B">Slot B</option>
+                    <option value="C">Slot C</option>
+                    <option value="D">Slot D</option>
+                    <option value="E">Slot E</option>
+                    <option value="F">Slot F</option>
+                    <option value="G">Slot G</option>
+                  </select>
+                </div>
+                
+                {(selectedCourse || selectedSlot) && (
+                  <button
+                    onClick={() => {
+                      setSelectedCourse('');
+                      setSelectedSlot('');
+                    }}
+                    className="px-3 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition text-sm"
+                  >
+                    Clear Filters
+                  </button>
+                )}
               </div>
               
-              <div className="flex items-center gap-2">
-                <span className="text-slate-600">Search:</span>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  placeholder="Search..."
-                />
+              {/* Search and Records Row */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={recordsPerPage}
+                    onChange={(e) => setRecordsPerPage(e.target.value)}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                  <span className="text-slate-600">records</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-600">Search:</span>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    placeholder="Search student name, ID, or course..."
+                  />
+                </div>
               </div>
             </div>
           </div>
 
           {/* Table */}
-          {filteredRequests.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-slate-500 text-lg">Loading requests...</p>
+            </div>
+          ) : filteredRequests.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-slate-500 text-lg">No data available in table</p>
             </div>
@@ -183,10 +390,11 @@ export default function CourseApprovePage() {
               <table className="w-full">
                 <thead className="bg-slate-50">
                   <tr>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Reg No. ▲</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Student</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Course Code</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Course Name</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Slot</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Student Info</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Available Count</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Requested On</th>
                     {activeTab === 'pending' && (
@@ -198,6 +406,12 @@ export default function CourseApprovePage() {
                     {activeTab === 'approved' && (
                       <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Approved On</th>
                     )}
+                    {activeTab === 'enrolled' && (
+                      <>
+                        <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Enrolled On</th>
+                        <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Reject</th>
+                      </>
+                    )}
                     {activeTab === 'rejected' && (
                       <>
                         <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Rejected On</th>
@@ -208,18 +422,28 @@ export default function CourseApprovePage() {
                 </thead>
                 <tbody>
                   {filteredRequests.map((request) => (
-                    <tr key={request.regNo} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="py-3 px-4 text-slate-700">{request.regNo}</td>
-                      <td className="py-3 px-4 text-slate-700">{request.student}</td>
-                      <td className="py-3 px-4 font-semibold text-blue-600">{request.courseCode}</td>
-                      <td className="py-3 px-4 text-slate-700">{request.courseName}</td>
-                      <td className="py-3 px-4 text-slate-700">{request.availableCount}</td>
-                      <td className="py-3 px-4 text-slate-600">{request.requestedOn}</td>
+                    <tr key={request.request_id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="py-3 px-4 text-slate-700">
+                        <div>
+                          <div className="font-semibold">{request.student_name}</div>
+                          <div className="text-xs text-slate-500">{request.student_id}</div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-blue-600">{request.course_code}</td>
+                      <td className="py-3 px-4 text-slate-700">{request.course_name}</td>
+                      <td className="py-3 px-4 text-purple-600 font-semibold">Slot {request.slot}</td>
+                      <td className="py-3 px-4 text-slate-600 text-xs">
+                        <div>Year: {request.student_year}, Sem: {request.student_semester}</div>
+                        <div>CGPA: {request.student_cgpa}</div>
+                        <div>{request.student_department}</div>
+                      </td>
+                      <td className="py-3 px-4 text-slate-700">{request.available_slots}</td>
+                      <td className="py-3 px-4 text-slate-600">{new Date(request.request_date).toLocaleDateString()}</td>
                       {activeTab === 'pending' && (
                         <>
                           <td className="py-3 px-4">
                             <button
-                              onClick={() => handleApprove(request.regNo)}
+                              onClick={() => handleApprove(request.request_id, request.student_name, request.course_code, request.slot)}
                               className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-lg transition-all text-sm font-semibold"
                             >
                               ✓ Approve
@@ -227,7 +451,7 @@ export default function CourseApprovePage() {
                           </td>
                           <td className="py-3 px-4">
                             <button
-                              onClick={() => handleReject(request.regNo)}
+                              onClick={() => handleReject(request.request_id)}
                               className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:shadow-lg transition-all text-sm font-semibold"
                             >
                               ✗ Reject
@@ -235,13 +459,26 @@ export default function CourseApprovePage() {
                           </td>
                         </>
                       )}
-                      {activeTab === 'approved' && 'approvedOn' in request && (
-                        <td className="py-3 px-4 text-slate-600">{(request as any).approvedOn}</td>
+                      {activeTab === 'approved' && (
+                        <td className="py-3 px-4 text-slate-600">{new Date(request.processed_at).toLocaleDateString()}</td>
                       )}
-                      {activeTab === 'rejected' && 'rejectedOn' in request && (
+                      {activeTab === 'enrolled' && (
                         <>
-                          <td className="py-3 px-4 text-slate-600">{(request as any).rejectedOn}</td>
-                          <td className="py-3 px-4 text-red-600">{(request as any).reason}</td>
+                          <td className="py-3 px-4 text-slate-600">{new Date(request.enrollment_date || request.processed_at).toLocaleDateString()}</td>
+                          <td className="py-3 px-4">
+                            <button
+                              onClick={() => handleRejectEnrolled(request.student_id, request.course_code, request.student_name)}
+                              className="px-2 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white rounded text-xs font-semibold hover:shadow-md transition-all"
+                            >
+                              ✗ Reject
+                            </button>
+                          </td>
+                        </>
+                      )}
+                      {activeTab === 'rejected' && (
+                        <>
+                          <td className="py-3 px-4 text-slate-600">{new Date(request.processed_at).toLocaleDateString()}</td>
+                          <td className="py-3 px-4 text-red-600">{request.faculty_notes}</td>
                         </>
                       )}
                     </tr>

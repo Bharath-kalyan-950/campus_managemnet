@@ -34,7 +34,7 @@ export default function NoDueApprovalPage() {
             <select
               value={recordsPerPage}
               onChange={(e) => setRecordsPerPage(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+              className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
             >
               <option value="10">10</option>
               <option value="25">25</option>
@@ -50,7 +50,7 @@ export default function NoDueApprovalPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white placeholder-slate-500"
               placeholder="Search..."
             />
           </div>

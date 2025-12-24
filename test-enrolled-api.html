@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Enrolled API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Test Enrolled Students API</h1>
+    
+    <button onclick="testEnrolledAPI()">Test Enrolled API</button>
+    <button onclick="testPendingAPI()">Test Pending API</button>
+    <button onclick="testApprovedAPI()">Test Approved API</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testAPI(status, label) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML += `<div class="result">Testing ${label}...</div>`;
+            
+            try {
+                const url = `/api/enrollment/requests?faculty_id=FAC2024001&status=${status}`;
+                console.log('🔍 Calling API:', url);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                console.log('📡 API Response:', data);
+                
+                if (data.success) {
+                    resultsDiv.innerHTML += `
+                        <div class="result success">
+                            <strong>${label} API Success!</strong><br>
+                            Found ${data.data.length} records<br>
+                            <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML += `
+                        <div class="result error">
+                            <strong>${label} API Failed!</strong><br>
+                            Error: ${data.error || 'Unknown error'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                resultsDiv.innerHTML += `
+                    <div class="result error">
+                        <strong>${label} API Error!</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function testEnrolledAPI() {
+            testAPI('enrolled', 'Enrolled Students');
+        }
+        
+        function testPendingAPI() {
+            testAPI('pending', 'Pending Requests');
+        }
+        
+        function testApprovedAPI() {
+            testAPI('approved', 'Approved Requests');
+        }
+    </script>
+</body>
+</html>

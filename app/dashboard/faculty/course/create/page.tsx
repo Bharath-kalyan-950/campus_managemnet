@@ -23,10 +23,55 @@ export default function CreateCoursePage() {
     });
   };
 
-  const handleSave = () => {
-    console.log('Saving course:', formData);
-    alert('Course saved successfully!');
-    // Here you would typically make an API call to save the course
+  const handleSave = async () => {
+    try {
+      // Validate required fields
+      if (!formData.courseCode || !formData.courseName || !formData.slot || !formData.maxSlotCount) {
+        alert('Please fill in all required fields: Course Code, Course Name, Slot, and Max Slot Count');
+        return;
+      }
+
+      // Get faculty ID from session
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const facultyId = user?.faculty_id || 'FAC2024001';
+
+      const courseData = {
+        courseCode: formData.courseCode,
+        courseName: formData.courseName,
+        type: formData.type,
+        subjectCategory: formData.subjectCategory,
+        prerequisiteCourse: formData.prerequisiteCourse,
+        slot: formData.slot,
+        maxSlotCount: formData.maxSlotCount,
+        courseCategory: formData.courseCategory,
+        faculty_id: facultyId
+      };
+
+      console.log('Creating course:', courseData);
+
+      // Make API call to create course
+      const response = await fetch('/api/faculty/courses/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(courseData)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`Course created successfully!\n\nCourse Code: ${result.course.course_code}\nSlot: ${result.course.slot}\nCapacity: ${result.course.max_capacity}\n\nStudents can now enroll in this course by selecting Slot ${result.course.slot}.`);
+        
+        // Clear form after successful save
+        handleClear();
+      } else {
+        alert(`Failed to create course: ${result.error}`);
+      }
+      
+    } catch (error) {
+      console.error('Error saving course:', error);
+      alert('Failed to save course. Please check the console for details.');
+    }
   };
 
   const handleClear = () => {
@@ -74,7 +119,7 @@ export default function CreateCoursePage() {
               value={formData.courseCode}
               onChange={handleChange}
               placeholder="Course Code"
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition"
+              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition text-slate-900 font-medium"
             />
           </div>
 
@@ -89,7 +134,7 @@ export default function CreateCoursePage() {
               value={formData.courseName}
               onChange={handleChange}
               placeholder="Course Name"
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition"
+              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition text-slate-900 font-medium"
             />
           </div>
 
@@ -102,7 +147,7 @@ export default function CreateCoursePage() {
               name="type"
               value={formData.type}
               onChange={handleChange}
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition"
+              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition text-slate-900 font-medium"
             >
               <option value="Contact Course">Contact Course</option>
               <option value="Online Course">Online Course</option>
@@ -120,7 +165,7 @@ export default function CreateCoursePage() {
                 name="subjectCategory"
                 value={formData.subjectCategory}
                 onChange={handleChange}
-                className="flex-1 px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition"
+                className="flex-1 px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition text-slate-900 font-medium"
               >
                 <option value="">--Select--</option>
                 <option value="Theory">Theory</option>
@@ -146,7 +191,7 @@ export default function CreateCoursePage() {
               name="prerequisiteCourse"
               value={formData.prerequisiteCourse}
               onChange={handleChange}
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition"
+              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition text-slate-900 font-medium"
             >
               <option value="">--Select--</option>
               <option value="None">None</option>
@@ -165,16 +210,16 @@ export default function CreateCoursePage() {
               name="slot"
               value={formData.slot}
               onChange={handleChange}
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition"
+              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition text-slate-900 font-medium"
             >
               <option value="">--Select--</option>
-              <option value="A">Slot A (8:00 AM - 9:00 AM)</option>
-              <option value="B">Slot B (9:00 AM - 10:00 AM)</option>
-              <option value="C">Slot C (10:00 AM - 11:00 AM)</option>
-              <option value="D">Slot D (11:00 AM - 12:00 PM)</option>
-              <option value="E">Slot E (1:00 PM - 2:00 PM)</option>
-              <option value="F">Slot F (2:00 PM - 3:00 PM)</option>
-              <option value="G">Slot G (3:00 PM - 4:00 PM)</option>
+              <option value="A">Slot A</option>
+              <option value="B">Slot B</option>
+              <option value="C">Slot C</option>
+              <option value="D">Slot D</option>
+              <option value="E">Slot E</option>
+              <option value="F">Slot F</option>
+              <option value="G">Slot G</option>
             </select>
           </div>
 
@@ -187,7 +232,7 @@ export default function CreateCoursePage() {
               name="courseCategory"
               value={formData.courseCategory}
               onChange={handleChange}
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition"
+              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition text-slate-900 font-medium"
             >
               <option value="">--Select--</option>
               <option value="Core">Core</option>
@@ -208,7 +253,7 @@ export default function CreateCoursePage() {
               value={formData.maxSlotCount}
               onChange={handleChange}
               placeholder="30"
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition"
+              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition text-slate-900 font-medium"
             />
           </div>
         </div>

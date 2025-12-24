@@ -196,18 +196,37 @@ export default function AdminDashboard() {
             {/* Quick Actions */}
             <div className="space-y-3">
               <h4 className="font-semibold text-slate-900 mb-3">Quick Actions</h4>
-              <button className="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition">
-                <div className="font-medium text-slate-900">View All Records</div>
-                <div className="text-sm text-slate-600">Access complete database</div>
-              </button>
-              <button className="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition">
-                <div className="font-medium text-slate-900">Generate Report</div>
-                <div className="text-sm text-slate-600">Create detailed analytics</div>
-              </button>
-              <button className="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition">
-                <div className="font-medium text-slate-900">Agent Settings</div>
-                <div className="text-sm text-slate-600">Configure agent parameters</div>
-              </button>
+              {selectedAgent === 'classroom' ? (
+                <>
+                  <a href="/dashboard/admin/classroom-agent" className="block w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition">
+                    <div className="font-medium text-slate-900">🤖 Classroom Agent Dashboard</div>
+                    <div className="text-sm text-slate-600">AI-powered classroom allocation system</div>
+                  </a>
+                  <button className="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition">
+                    <div className="font-medium text-slate-900">📊 Room Utilization Report</div>
+                    <div className="text-sm text-slate-600">View classroom usage analytics</div>
+                  </button>
+                  <button className="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition">
+                    <div className="font-medium text-slate-900">⚙️ Agent Configuration</div>
+                    <div className="text-sm text-slate-600">Configure AI agent parameters</div>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition">
+                    <div className="font-medium text-slate-900">View All Records</div>
+                    <div className="text-sm text-slate-600">Access complete database</div>
+                  </button>
+                  <button className="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition">
+                    <div className="font-medium text-slate-900">Generate Report</div>
+                    <div className="text-sm text-slate-600">Create detailed analytics</div>
+                  </button>
+                  <button className="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition">
+                    <div className="font-medium text-slate-900">Agent Settings</div>
+                    <div className="text-sm text-slate-600">Configure agent parameters</div>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

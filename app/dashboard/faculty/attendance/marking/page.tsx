@@ -1,18 +1,58 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function AttendanceMarkingPage() {
   const [selectedCourse, setSelectedCourse] = useState('');
   const [showCourseDropdown, setShowCourseDropdown] = useState(false);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
+  const [facultyId, setFacultyId] = useState('');
 
-  const courses = [
-    'MMA1251-Mentor Mentee Meeting',
-    'MMA1252-Mentor Mentee Meeting',
-    'MMA1559-Mentor - Mentee Meeting',
-    'MMA1601-Mentor and Mentee',
-    'SPIC706-Product Development and Design for latest applications',
-  ];
+  useEffect(() => {
+    // Get faculty ID from session
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      setFacultyId(user.faculty_id || user.registration_number || 'FAC2024001');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (facultyId) {
+      fetchFacultyCourses();
+    }
+  }, [facultyId]);
+
+  useEffect(() => {
+    if (selectedCourse) {
+      fetchEnrolledStudents();
+    }
+  }, [selectedCourse]);
+
+  const fetchFacultyCourses = async () => {
+    try {
+      const response = await fetch(`/api/faculty/courses?faculty_id=${facultyId}`);
+      const data = await response.json();
+      if (data.success) {
+        setCourses(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    }
+  };
+
+  const fetchEnrolledStudents = async () => {
+    try {
+      const response = await fetch(`/api/faculty/students?course_code=${selectedCourse}&faculty_id=${facultyId}`);
+      const data = await response.json();
+      if (data.success) {
+        setEnrolledStudents(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching enrolled students:', error);
+    }
+  };
 
   const handleCourseSelect = (course: string) => {
     setSelectedCourse(course);
@@ -64,12 +104,15 @@ export default function AttendanceMarkingPage() {
                   {courses.map((course, index) => (
                     <button
                       key={index}
-                      onClick={() => handleCourseSelect(course)}
+                      onClick={() => handleCourseSelect(course.course_code)}
                       className={`w-full px-4 py-2 text-left hover:bg-blue-50 rounded-lg transition ${
-                        selectedCourse === course ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-slate-700'
+                        selectedCourse === course.course_code ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-slate-700'
                       }`}
                     >
-                      {course}
+                      <div>
+                        <div className="font-semibold">{course.course_code} - {course.course_name}</div>
+                        <div className="text-xs text-slate-500">Slot {course.slot} • {course.current_enrolled} enrolled</div>
+                      </div>
                     </button>
                   ))}
                 </div>

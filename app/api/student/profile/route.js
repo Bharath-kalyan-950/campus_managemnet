@@ -25,7 +25,7 @@ export async function GET(request) {
         s.guardian_phone, s.address, s.blood_group, s.date_of_birth,
         s.admission_date
       FROM students s
-      JOIN users u ON s.student_id = u.user_id
+      JOIN users u ON s.user_id = u.id
       WHERE s.student_id = ?
     `, [registrationNumber]);
 
@@ -60,7 +60,7 @@ export async function PUT(request) {
     
     await executeQuery(`
       UPDATE users u
-      JOIN students s ON u.id = s.user_id
+      JOIN students s ON s.user_id = u.id
       SET u.phone = ?, s.guardian_name = ?, s.guardian_phone = ?, s.address = ?, s.blood_group = ?
       WHERE s.student_id = ?
     `, [phone, guardian_name, guardian_phone, address, blood_group, registrationNumber]);

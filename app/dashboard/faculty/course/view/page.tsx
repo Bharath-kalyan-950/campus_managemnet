@@ -1,63 +1,77 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function ViewCoursePage() {
   const [activeTab, setActiveTab] = useState('running');
   const [searchTerm, setSearchTerm] = useState('');
   const [recordsPerPage, setRecordsPerPage] = useState('10');
+  const [courses, setCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [facultyId, setFacultyId] = useState('');
 
-  const runningCourses = [
-    { 
-      sno: 1, code: 'CS301', name: 'Data Structures', type: 'Contact Course', 
-      subjectCategory: 'Theory', courseCategory: 'Core', prerequisite: 'None',
-      slot: 'A', available: 30, principal: 45, createdOn: '2024-01-15',
-      attendance: '85%', noDue: 'Yes', isRunning: true
-    },
-    { 
-      sno: 2, code: 'CS302', name: 'Database Management Systems', type: 'Contact Course',
-      subjectCategory: 'Theory', courseCategory: 'Core', prerequisite: 'CS301',
-      slot: 'B', available: 28, principal: 42, createdOn: '2024-01-15',
-      attendance: '88%', noDue: 'Yes', isRunning: true
-    },
-    { 
-      sno: 3, code: 'CS303', name: 'Computer Networks', type: 'Contact Course',
-      subjectCategory: 'Theory', courseCategory: 'Core', prerequisite: 'None',
-      slot: 'C', available: 25, principal: 40, createdOn: '2024-01-16',
-      attendance: '82%', noDue: 'Yes', isRunning: true
-    },
-  ];
+  useEffect(() => {
+    // Get faculty ID from session
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        const facultyIdToUse = user.faculty_id || user.registration_number || 'FAC2024001';
+        setFacultyId(facultyIdToUse);
+      } catch (error) {
+        console.error('Error parsing user from localStorage:', error);
+        setFacultyId('FAC2024001');
+      }
+    } else {
+      setFacultyId('FAC2024001');
+    }
+  }, []);
 
-  const approvedCourses = [
-    { 
-      sno: 1, code: 'CS307', name: 'Machine Learning', type: 'Contact Course',
-      subjectCategory: 'Theory', courseCategory: 'Elective', prerequisite: 'CS301',
-      slot: 'E', available: 20, principal: 25, createdOn: '2024-11-30',
-      attendance: 'N/A', noDue: 'N/A', isRunning: false
-    },
-  ];
+  useEffect(() => {
+    if (facultyId) {
+      fetchCourses();
+    }
+  }, [facultyId, activeTab]);
 
-  const rejectedCourses = [
-    { 
-      sno: 1, code: 'CS320', name: 'Quantum Computing', type: 'Online Course',
-      subjectCategory: 'Theory', courseCategory: 'Elective', prerequisite: 'CS301',
-      slot: 'F', available: 15, principal: 20, createdOn: '2024-11-25',
-      attendance: 'N/A', noDue: 'N/A', isRunning: false, reason: 'Insufficient resources'
-    },
-  ];
+  const fetchCourses = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/faculty/courses?faculty_id=${facultyId}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setCourses(data.data);
+      } else {
+        console.error('Failed to fetch courses:', data.error);
+        setCourses([]);
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      setCourses([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getCurrentCourses = () => {
     switch(activeTab) {
-      case 'running': return runningCourses;
-      case 'approved': return approvedCourses;
-      case 'rejected': return rejectedCourses;
-      default: return runningCourses;
+      case 'running': 
+        // Show courses that have enrolled students (running courses)
+        return courses.filter(course => course.enrolled_students > 0);
+      case 'approved': 
+        // Show courses that are created but not yet running (no enrolled students)
+        return courses.filter(course => course.enrolled_students === 0);
+      case 'rejected': 
+        // For now, return empty array as we don't have rejected courses in DB
+        return [];
+      default: 
+        return courses.filter(course => course.enrolled_students > 0);
     }
   };
 
   const filteredCourses = getCurrentCourses().filter(course => 
-    course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.code.toLowerCase().includes(searchTerm.toLowerCase())
+    course.course_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    course.course_code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -152,7 +166,11 @@ export default function ViewCoursePage() {
           </div>
 
           {/* Table */}
-          {filteredCourses.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-slate-500 text-lg">Loading courses...</p>
+            </div>
+          ) : filteredCourses.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-slate-500 text-lg">No data available in table</p>
             </div>
@@ -165,44 +183,30 @@ export default function ViewCoursePage() {
                     <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Code</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Course Name</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Type</th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Subject Category</th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Course Category</th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Prerequisite</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Credits</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Slot</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Capacity</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Enrolled</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Available</th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Principal</th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Created On</th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Attendance</th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">No Due</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">Pending</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700 border-b">IsRunning</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCourses.map((course) => (
-                    <tr key={course.sno} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="py-3 px-4 text-slate-700">{course.sno}</td>
-                      <td className="py-3 px-4 font-semibold text-blue-600">{course.code}</td>
-                      <td className="py-3 px-4 text-slate-700">{course.name}</td>
-                      <td className="py-3 px-4 text-slate-600">{course.type}</td>
-                      <td className="py-3 px-4 text-slate-600">{course.subjectCategory}</td>
+                  {filteredCourses.map((course, index) => (
+                    <tr key={course.course_code} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="py-3 px-4 text-slate-700">{index + 1}</td>
+                      <td className="py-3 px-4 font-semibold text-blue-600">{course.course_code}</td>
+                      <td className="py-3 px-4 text-slate-700">{course.course_name}</td>
+                      <td className="py-3 px-4 text-slate-600 capitalize">{course.course_type}</td>
+                      <td className="py-3 px-4 text-slate-700">{course.credits}</td>
+                      <td className="py-3 px-4 text-purple-600 font-semibold">Slot {course.slot}</td>
+                      <td className="py-3 px-4 text-slate-700">{course.max_capacity}</td>
+                      <td className="py-3 px-4 text-green-600 font-semibold">{course.current_enrolled}</td>
+                      <td className="py-3 px-4 text-blue-600 font-semibold">{course.available_slots}</td>
+                      <td className="py-3 px-4 text-orange-600 font-semibold">{course.pending_requests}</td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          course.courseCategory === 'Core' 
-                            ? 'bg-blue-100 text-blue-700' 
-                            : 'bg-purple-100 text-purple-700'
-                        }`}>
-                          {course.courseCategory}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">{course.prerequisite}</td>
-                      <td className="py-3 px-4 text-slate-700">{course.slot}</td>
-                      <td className="py-3 px-4 text-slate-700">{course.available}</td>
-                      <td className="py-3 px-4 text-slate-700">{course.principal}</td>
-                      <td className="py-3 px-4 text-slate-600">{course.createdOn}</td>
-                      <td className="py-3 px-4 text-slate-700">{course.attendance}</td>
-                      <td className="py-3 px-4 text-slate-700">{course.noDue}</td>
-                      <td className="py-3 px-4">
-                        {course.isRunning ? (
+                        {course.enrolled_students > 0 ? (
                           <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
                             Yes
                           </span>
