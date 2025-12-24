@@ -8,9 +8,12 @@ export default function ClassroomAgentDashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [aiProcessing, setAiProcessing] = useState(false);
+  const [aiStatus, setAiStatus] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
+    fetchAIStatus();
   }, [selectedDate]);
 
   const fetchDashboardData = async () => {
@@ -26,6 +29,49 @@ export default function ClassroomAgentDashboard() {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAIStatus = async () => {
+    try {
+      const response = await fetch(`/api/classroom-agent/ai-process?date=${selectedDate}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setAiStatus(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching AI status:', error);
+    }
+  };
+
+  const handleAIAction = async (action) => {
+    try {
+      setAiProcessing(true);
+      const response = await fetch('/api/classroom-agent/ai-process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          date: selectedDate
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Show success message
+        alert(`AI ${action.replace('_', ' ')} completed successfully!`);
+        fetchDashboardData(); // Refresh data
+        fetchAIStatus(); // Refresh AI status
+      } else {
+        alert(`AI processing failed: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error processing AI action:', error);
+      alert('AI processing failed');
+    } finally {
+      setAiProcessing(false);
     }
   };
 
@@ -146,6 +192,130 @@ export default function ClassroomAgentDashboard() {
               </svg>
             </div>
           </div>
+        </div>
+
+        {/* AI Control Panel */}
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl shadow-sm p-6 border border-purple-200 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 flex items-center">
+                <span className="text-2xl mr-2">🧠</span>
+                Intelligent Agent Control Panel
+              </h2>
+              <p className="text-slate-600 mt-1">
+                Rule-based intelligent conflict resolution and allocation optimization
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span className="text-sm font-medium text-slate-600">
+                AI Enabled (Rule-Based)
+              </span>
+            </div>
+          </div>
+
+          {/* Always show AI controls since rule-based AI is always available */}
+          <>
+            {/* AI Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-white rounded-lg p-4 border border-slate-200">
+                <p className="text-sm font-medium text-slate-600">AI Decisions Today</p>
+                <p className="text-xl font-bold text-purple-600">{aiStatus?.processing_stats?.decisions_today || 0}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-slate-200">
+                <p className="text-sm font-medium text-slate-600">Average Confidence</p>
+                <p className="text-xl font-bold text-blue-600">
+                  {aiStatus?.processing_stats?.avg_confidence ? 
+                    `${Math.round(aiStatus.processing_stats.avg_confidence * 100)}%` : 
+                    'N/A'
+                  }
+                </p>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-slate-200">
+                <p className="text-sm font-medium text-slate-600">Notifications Sent</p>
+                <p className="text-xl font-bold text-green-600">{aiStatus?.processing_stats?.notifications_sent || 0}</p>
+              </div>
+            </div>
+
+            {/* AI Capabilities */}
+            <div className="bg-blue-50 rounded-lg p-4 mb-6">
+              <h3 className="text-sm font-semibold text-blue-900 mb-2">Intelligent Agent Capabilities</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-blue-800">
+                <div className="flex items-center">
+                  <span className="mr-2">✓</span>
+                  Multi-criteria room allocation
+                </div>
+                <div className="flex items-center">
+                  <span className="mr-2">✓</span>
+                  Intelligent conflict analysis
+                </div>
+                <div className="flex items-center">
+                  <span className="mr-2">✓</span>
+                  Priority-based decision making
+                </div>
+                <div className="flex items-center">
+                  <span className="mr-2">✓</span>
+                  Automated notification generation
+                </div>
+                <div className="flex items-center">
+                  <span className="mr-2">✓</span>
+                  Utilization optimization
+                </div>
+                <div className="flex items-center">
+                  <span className="mr-2">✓</span>
+                  Equipment matching algorithms
+                </div>
+              </div>
+            </div>
+
+            {/* AI Action Buttons */}
+            <div className="flex flex-wrap gap-4">
+              <button
+                onClick={() => handleAIAction('analyze_conflicts')}
+                disabled={aiProcessing}
+                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {aiProcessing ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                ) : (
+                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                )}
+                Analyze Conflicts
+              </button>
+
+              <button
+                onClick={() => handleAIAction('process_allocations')}
+                disabled={aiProcessing}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {aiProcessing ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                ) : (
+                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+                Process Allocations
+              </button>
+
+              <button
+                onClick={() => handleAIAction('generate_notifications')}
+                disabled={aiProcessing}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {aiProcessing ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                ) : (
+                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                )}
+                Generate Notifications
+              </button>
+            </div>
+          </>
         </div>
 
         {/* Agent Performance Metrics */}

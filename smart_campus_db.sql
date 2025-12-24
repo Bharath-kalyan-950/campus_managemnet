@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 24, 2025 at 04:50 AM
+-- Generation Time: Dec 24, 2025 at 08:48 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -62,6 +62,13 @@ CREATE TABLE `agent_decisions` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `agent_decisions`
+--
+
+INSERT INTO `agent_decisions` (`id`, `decision_id`, `request_id`, `decision_type`, `suggested_room_id`, `suggested_time_start`, `suggested_time_end`, `confidence_score`, `reasoning`, `conflicts_detected`, `alternative_options`, `admin_override`, `created_at`) VALUES
+(1, 'DEC1766559821440', 'REQ1766559821421', 'auto_approve', 'SEM001', '13:33:00', '14:33:00', 0.95, 'Automatically approved. No conflicts detected. Allocated to Seminar Room 1 (capacity: 30)', NULL, NULL, 0, '2025-12-24 07:03:41');
+
 -- --------------------------------------------------------
 
 --
@@ -91,7 +98,8 @@ CREATE TABLE `agent_notifications` (
 INSERT INTO `agent_notifications` (`id`, `notification_id`, `recipient_id`, `recipient_type`, `notification_type`, `title`, `message`, `related_allocation_id`, `related_request_id`, `priority`, `is_read`, `created_at`, `read_at`) VALUES
 (1, 'NOT001', 'FAC2024001', 'faculty', 'allocation_approved', 'Classroom Allocated', 'Your request for CS301 Database Management has been approved and allocated to LH001', 'ALLOC001', NULL, 'medium', 0, '2025-12-23 07:12:42', NULL),
 (2, 'NOT002', 'FAC2024001', 'faculty', 'allocation_approved', 'Lab Allocated', 'Your request for CS302 Computer Networks has been approved and allocated to LAB001', 'ALLOC002', NULL, 'medium', 0, '2025-12-23 07:12:42', NULL),
-(3, 'NOT003', 'STU2024001', 'student', 'room_changed', 'Room Update', 'Your CS301 class location has been confirmed: LH001 (Academic Block A)', 'ALLOC001', NULL, 'low', 0, '2025-12-23 07:12:42', NULL);
+(3, 'NOT003', 'STU2024001', 'student', 'room_changed', 'Room Update', 'Your CS301 class location has been confirmed: LH001 (Academic Block A)', 'ALLOC001', NULL, 'low', 0, '2025-12-23 07:12:42', NULL),
+(4, 'NOT1766559821452_ge9', 'FAC2024001', 'faculty', 'allocation_approved', 'Classroom Allocated', 'Your request for class room has been approved and allocated to room SEM001', NULL, NULL, 'medium', 0, '2025-12-24 07:03:41', NULL);
 
 -- --------------------------------------------------------
 
@@ -148,7 +156,8 @@ INSERT INTO `allocation_requests` (`id`, `request_id`, `faculty_id`, `course_cod
 (8, 'REQ002', 'FAC2024001', 'CS302', '2024-12-20', '11:00:00', '12:30:00', 40, '{\"projector\": true, \"wifi\": true}', 'Computer Networks Lecture', 'medium', 'pending', '2025-12-23 07:12:42', NULL, NULL, NULL),
 (9, 'REQ003', 'FAC2024001', 'CS303', '2024-12-20', '14:00:00', '17:00:00', 30, '{\"oscilloscopes\": 15, \"function_generators\": 15}', 'Computer Networks Lab', 'high', 'pending', '2025-12-23 07:12:42', NULL, NULL, NULL),
 (10, 'REQ004', 'FAC2024001', 'CS303', '2024-12-21', '09:00:00', '12:00:00', 25, '{\"projector\": true, \"computers\": 25}', 'Software Engineering Lab Session', 'high', 'pending', '2025-12-23 07:12:42', NULL, NULL, NULL),
-(11, 'REQ005', 'FAC2024001', 'CS305', '2024-12-22', '14:00:00', '16:00:00', 60, '{\"projector\": true, \"audio_system\": true, \"computers\": 60}', 'Machine Learning Workshop', 'medium', 'pending', '2025-12-23 07:12:42', NULL, NULL, NULL);
+(11, 'REQ005', 'FAC2024001', 'CS305', '2024-12-22', '14:00:00', '16:00:00', 60, '{\"projector\": true, \"audio_system\": true, \"computers\": 60}', 'Machine Learning Workshop', 'medium', 'pending', '2025-12-23 07:12:42', NULL, NULL, NULL),
+(13, 'REQ1766559821421', 'FAC2024001', 'CS301', '2025-12-25', '13:33:00', '14:33:00', 30, '{\"projector\":true,\"whiteboard\":true}', 'class room', 'low', 'approved', '2025-12-24 07:03:41', '2025-12-24 07:03:41', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -282,7 +291,8 @@ CREATE TABLE `classroom_allocations` (
 INSERT INTO `classroom_allocations` (`id`, `allocation_id`, `request_id`, `room_id`, `faculty_id`, `course_code`, `allocated_date`, `start_time`, `end_time`, `actual_strength`, `status`, `allocation_type`, `created_at`, `updated_at`) VALUES
 (1, 'ALLOC001', NULL, 'LH001', 'FAC2024001', 'CS301', '2024-12-18', '09:00:00', '10:30:00', NULL, 'scheduled', 'regular', '2025-12-23 07:12:42', '2025-12-23 07:12:42'),
 (2, 'ALLOC002', NULL, 'LAB001', 'FAC2024001', 'CS302', '2024-12-18', '11:00:00', '12:30:00', NULL, 'scheduled', 'regular', '2025-12-23 07:12:42', '2025-12-23 07:12:42'),
-(3, 'ALLOC003', NULL, 'LAB003', 'FAC2024001', 'CS303', '2024-12-18', '14:00:00', '17:00:00', NULL, 'scheduled', 'regular', '2025-12-23 07:12:42', '2025-12-23 07:12:42');
+(3, 'ALLOC003', NULL, 'LAB003', 'FAC2024001', 'CS303', '2024-12-18', '14:00:00', '17:00:00', NULL, 'scheduled', 'regular', '2025-12-23 07:12:42', '2025-12-23 07:12:42'),
+(4, 'ALLOC1766559821444', 'REQ1766559821421', 'SEM001', 'FAC2024001', 'CS301', '2025-12-25', '13:33:00', '14:33:00', NULL, 'scheduled', 'regular', '2025-12-24 07:03:41', '2025-12-24 07:03:41');
 
 -- --------------------------------------------------------
 
@@ -1048,13 +1058,13 @@ ALTER TABLE `academic_calendar`
 -- AUTO_INCREMENT for table `agent_decisions`
 --
 ALTER TABLE `agent_decisions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `agent_notifications`
 --
 ALTER TABLE `agent_notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `allocation_conflicts`
@@ -1066,7 +1076,7 @@ ALTER TABLE `allocation_conflicts`
 -- AUTO_INCREMENT for table `allocation_requests`
 --
 ALTER TABLE `allocation_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `assignments`
@@ -1096,7 +1106,7 @@ ALTER TABLE `classrooms`
 -- AUTO_INCREMENT for table `classroom_allocations`
 --
 ALTER TABLE `classroom_allocations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `courses`

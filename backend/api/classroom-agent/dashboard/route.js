@@ -48,7 +48,7 @@ export async function GET(request) {
         ar.requested_date,
         ar.start_time,
         ar.end_time,
-        CONCAT(u.first_name, ' ', u.last_name) as faculty_name,
+        CONCAT(uf.first_name, ' ', uf.last_name) as faculty_name,
         c.course_name
       FROM agent_decisions ad
       JOIN allocation_requests ar ON ad.request_id = ar.request_id
