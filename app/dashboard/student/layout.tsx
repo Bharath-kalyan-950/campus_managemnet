@@ -17,6 +17,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const [showProfile, setShowProfile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showInfraSubmenu, setShowInfraSubmenu] = useState(false);
+  const [showAttendanceSubmenu, setShowAttendanceSubmenu] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [classroomNotifications, setClassroomNotifications] = useState<any[]>([]);
   const [notificationCount, setNotificationCount] = useState(0);
@@ -81,7 +82,10 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     { name: 'My Course', icon: '📚', path: '/dashboard/student/courses' },
     { name: 'My Course Feedback', icon: '📝', path: '/dashboard/student/feedback' },
     { name: 'Enrollment', icon: '✍️', path: '/dashboard/student/enrollment' },
-    { name: 'Attendance', icon: '📅', path: '/dashboard/student/attendance' },
+    // Attendance dropdown will be inserted after Enrollment
+  ];
+
+  const menuItemsAfterAttendance = [
     { name: 'Assignment', icon: '📄', path: '/dashboard/student/assignment' },
     { name: 'Examination', icon: '📋', path: '/dashboard/student/examination' },
     { name: 'Financial Record', icon: '💰', path: '/dashboard/student/fees' },
@@ -89,6 +93,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     { name: 'Disciplinary', icon: '⚖️', path: '/dashboard/student/disciplinary' },
     { name: 'Offer', icon: '🎁', path: '/dashboard/student/offers' },
     { name: 'My Profile', icon: '👤', path: '/dashboard/student/profile' },
+  ];
+
+  const attendanceSubmenu = [
+    { name: 'Request OD', path: '/dashboard/student/attendance/request-od' },
+    { name: 'Attendance', path: '/dashboard/student/attendance' },
   ];
 
   const infraIssueSubmenu = [
@@ -168,7 +177,80 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           {/* Menu Items */}
           <nav className="px-3 py-4">
             <ul className="space-y-1">
+              {/* First part of menu items (Home to Enrollment) */}
               {menuItems.map((item) => (
+                <li key={item.path}>
+                  <button
+                    onClick={() => {
+                      router.push(item.path);
+                      setSidebarOpen(false);
+                    }}
+                    className={`flex items-center w-full px-4 py-3 rounded-xl transition-all text-left group ${
+                      pathname === item.path
+                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/30'
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span className="text-lg mr-3">{item.icon}</span>
+                    <span className="font-medium text-sm">{item.name}</span>
+                  </button>
+                </li>
+              ))}
+
+              {/* Attendance with Submenu - positioned after Enrollment */}
+              <li>
+                <button
+                  onClick={() => setShowAttendanceSubmenu(!showAttendanceSubmenu)}
+                  className={`flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all text-left ${
+                    pathname.startsWith('/dashboard/student/attendance')
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/30'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <span className="text-lg mr-3">📅</span>
+                    <span className="font-medium text-sm">Attendance</span>
+                  </div>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${showAttendanceSubmenu ? 'rotate-180' : ''}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {/* Attendance Submenu */}
+                {showAttendanceSubmenu && (
+                  <ul className="mt-1 ml-8 space-y-1">
+                    {attendanceSubmenu.map((subItem) => (
+                      <li key={subItem.path}>
+                        <button
+                          onClick={() => {
+                            router.push(subItem.path);
+                            setSidebarOpen(false);
+                          }}
+                          className={`flex items-center w-full px-4 py-2 rounded-lg transition-all text-left text-sm ${
+                            pathname === subItem.path
+                              ? 'bg-blue-100 text-blue-700 font-semibold'
+                              : 'text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span className="mr-2">•</span>
+                          {subItem.name}
+                          {subItem.name === 'Request OD' && (
+                            <span className="ml-2 px-2 py-0.5 bg-green-500 text-white text-xs rounded-full">New</span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+
+              {/* Remaining menu items (Assignment to My Profile) */}
+              {menuItemsAfterAttendance.map((item) => (
                 <li key={item.path}>
                   <button
                     onClick={() => {

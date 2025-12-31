@@ -7,11 +7,10 @@ interface Course {
   course_code: string;
   course_name: string;
   credits: number;
-  course_type: string;
-  status: string;
-  grade?: string;
-  grade_points?: number;
-  faculty_name?: string;
+  slot: string;
+  faculty_name: string;
+  enrollment_status: string;
+  enrolled_date: string;
 }
 
 export default function CoursesPage() {
@@ -28,13 +27,17 @@ export default function CoursesPage() {
     try {
       setLoading(true);
       const response = await studentAPI.getCourses();
-      if (response.success) {
-        setCourses(response.data);
+      if (response.success && response.data && response.data.courses) {
+        setCourses(response.data.courses);
       } else {
-        setError('Failed to load courses');
+        console.error('Invalid response structure:', response);
+        setError('Failed to load courses - invalid data structure');
+        setCourses([]);
       }
     } catch (err) {
+      console.error('Error fetching courses:', err);
       setError('Failed to load courses');
+      setCourses([]);
     } finally {
       setLoading(false);
     }
@@ -43,19 +46,10 @@ export default function CoursesPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'enrolled': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
       case 'dropped': return 'bg-red-100 text-red-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getCourseTypeColor = (type: string) => {
-    switch (type) {
-      case 'core': return 'bg-purple-100 text-purple-800';
-      case 'elective': return 'bg-green-100 text-green-800';
-      case 'lab': return 'bg-orange-100 text-orange-800';
-      case 'project': return 'bg-pink-100 text-pink-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -123,8 +117,8 @@ export default function CoursesPage() {
                     <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
                       {course.course_code}
                     </span>
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getCourseTypeColor(course.course_type)}`}>
-                      {course.course_type}
+                    <span className="text-xs font-semibold px-2 py-1 rounded-full bg-green-100 text-green-800">
+                      Slot {course.slot}
                     </span>
                   </div>
                   <h3 className="font-bold text-slate-900 text-lg mb-2 group-hover:text-blue-600 transition">
@@ -144,17 +138,17 @@ export default function CoursesPage() {
 
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-600">Status</span>
-                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusColor(course.status)}`}>
-                    {course.status}
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusColor(course.enrollment_status)}`}>
+                    {course.enrollment_status}
                   </span>
                 </div>
 
-                {course.grade && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-600">Grade</span>
-                    <span className="font-bold text-green-600">{course.grade}</span>
-                  </div>
-                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600">Enrolled</span>
+                  <span className="text-sm text-slate-900">
+                    {new Date(course.enrolled_date).toLocaleDateString()}
+                  </span>
+                </div>
 
                 {course.grade_points && (
                   <div className="flex items-center justify-between">

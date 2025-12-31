@@ -40,12 +40,12 @@ export default function EnrollmentPage() {
         console.log('✅ Student ID from server:', studentIdToUse);
         setStudentId(studentIdToUse);
       } else {
-        console.error('❌ Failed to get student ID from server:', data.message);
-        setStudentId('STU2024001'); // Fallback
+        console.error('❌ Failed to get student ID from server:', data.error || 'Unknown error');
+        setStudentId('STU2024001'); // Fallback to John Doe
       }
     } catch (error) {
       console.error('❌ Error fetching student ID from server:', error);
-      setStudentId('STU2024001'); // Fallback
+      setStudentId('STU2024001'); // Fallback to John Doe
     }
   };
 
@@ -220,24 +220,28 @@ export default function EnrollmentPage() {
       const response = await fetch('/api/student/courses');
       const data = await response.json();
       
-      if (data.success) {
+      if (data.success && data.data && data.data.courses) {
         // Filter only courses that are actually enrolled (not dropped)
-        const enrolledCourses = data.data
-          .filter((course: any) => course.status === 'enrolled')
+        const enrolledCourses = data.data.courses
+          .filter((course: any) => course.enrollment_status === 'enrolled' || course.enrollment_status === 'approved')
           .map((course: any) => ({
             course_code: course.course_code,
             course_name: course.course_name,
             slot: course.slot,
             credits: course.credits,
-            enrollment_status: 'enrolled',
+            enrollment_status: course.enrollment_status,
             faculty_name: course.faculty_name
           }));
         
         setEnrolledCourses(enrolledCourses);
         console.log('✅ Updated enrolled courses from student courses API:', enrolledCourses.length);
+      } else {
+        console.error('❌ Invalid data structure from student courses API:', data);
+        setEnrolledCourses([]);
       }
     } catch (error) {
       console.error('❌ Error fetching enrolled courses:', error);
+      setEnrolledCourses([]);
     }
   };
 

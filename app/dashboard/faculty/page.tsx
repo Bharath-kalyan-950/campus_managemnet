@@ -31,7 +31,7 @@ export default function FacultyDashboard() {
           facultyId: data.data.faculty_id
         });
       } else {
-        console.error('Failed to fetch user info:', data.message);
+        console.error('Failed to fetch user info:', data.error || 'Unknown error');
       }
     } catch (error) {
       console.error('Error fetching user info:', error);

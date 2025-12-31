@@ -6,12 +6,12 @@ export async function GET(request) {
   try {
     const token = request.cookies.get('token')?.value;
     if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
     if (!decoded || decoded.role !== 'student') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     // Use registration number for direct lookup - simpler and faster
@@ -30,13 +30,13 @@ export async function GET(request) {
     `, [registrationNumber]);
 
     if (profile.length === 0) {
-      return NextResponse.json({ success: false, message: 'Profile not found' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Profile not found' }, { status: 404 });
     }
 
     return NextResponse.json({ success: true, data: profile[0] });
   } catch (error) {
     console.error('Profile fetch error:', error);
-    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 

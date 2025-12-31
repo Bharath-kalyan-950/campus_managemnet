@@ -70,7 +70,7 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
           facultyId: data.data.faculty_id
         });
       } else {
-        console.error('Failed to fetch faculty profile:', data.message);
+        console.error('Failed to fetch faculty profile:', data.error || 'Unknown error');
       }
     } catch (error) {
       console.error('Error fetching faculty user info:', error);
